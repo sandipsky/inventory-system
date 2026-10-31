@@ -1,0 +1,8 @@
+# Keep Linux line endings on scripts — Windows (CRLF) endings break them
+# inside the Docker container
+backend/mvnw text eol=lf
+*.sh text eol=lf
+
+# Windows scripts keep Windows line endings
+*.cmd text eol=crlf
+*.bat text eol=crlf

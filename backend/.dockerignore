@@ -1,0 +1,11 @@
+target/
+uploads/
+inventory_system.db
+*.db
+.git/
+.gitignore
+.vscode/
+.idea/
+*.md
+Dockerfile
+docker-compose.yml

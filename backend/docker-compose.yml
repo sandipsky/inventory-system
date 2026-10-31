@@ -1,0 +1,23 @@
+services:
+  inventory-backend:
+    build: .
+    container_name: inventory-system-be
+    ports:
+      - "8080:8080"
+    volumes:
+      - inventory-data:/app/data
+      - inventory-uploads:/app/uploads
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:sqlite:/app/data/inventory_system.db
+      FILE_UPLOAD_DIR: /app/uploads/
+      # Override the checked-in secret in real deployments:
+      # JWT_SECRET_KEY: <your-secret>
+    restart: unless-stopped
+
+volumes:
+  # Pin exact volume names (no compose project prefix) — the original
+  # `docker run` deployment created them unprefixed and they hold live data.
+  inventory-data:
+    name: inventory-data
+  inventory-uploads:
+    name: inventory-uploads

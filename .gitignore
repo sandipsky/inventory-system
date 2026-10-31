@@ -1,0 +1,102 @@
+# =========================================================
+#  Backend (Spring Boot / Maven) — backend/
+# =========================================================
+
+# Build output
+backend/target/
+backend/build/
+backend/HELP.md
+
+# Local SQLite database (recreate it with backend/reset.sh)
+backend/*.db
+backend/*.db-journal
+backend/*.db-wal
+backend/*.db-shm
+
+# Files uploaded at runtime (the app recreates this folder)
+backend/uploads/
+
+# Spring Tool Suite / Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# =========================================================
+#  Frontend (Angular) — frontend/
+# =========================================================
+
+# Dependencies
+node_modules/
+
+# Build output and caches
+frontend/dist/
+frontend/tmp/
+frontend/out-tsc/
+frontend/bazel-out/
+frontend/.angular/
+frontend/.sass-cache/
+
+# Test output
+frontend/coverage/
+frontend/testem.log
+__screenshots__/
+
+# Misc
+frontend/connect.lock
+frontend/libpeerconnection.log
+frontend/typings/
+
+# =========================================================
+#  Shared
+# =========================================================
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Environment files (may contain secrets)
+.env
+.env.*
+!.env.example
+
+# Exported Docker images (e.g. docker save ... | gzip > image.tar.gz)
+*.tar.gz
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code — keep the shared project settings, ignore the rest
+**/.vscode/*
+!**/.vscode/settings.json
+!**/.vscode/tasks.json
+!**/.vscode/launch.json
+!**/.vscode/extensions.json
+!**/.vscode/mcp.json
+.history/
+
+# Other editors
+.c9/
+*.launch
+*.sublime-workspace
+*.swp
+
+# Claude Code personal settings
+**/.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
