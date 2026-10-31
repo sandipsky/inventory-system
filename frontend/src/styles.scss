@@ -1,5 +1,7 @@
 @use './styles/colors';
 @use './styles/utils';
+// Lumen's shared form classes (.form-group, .form-control, input hosts).
+@use '@lumen-ui/angular/styles/form';
 
 * {
   margin: 0;

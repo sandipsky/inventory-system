@@ -1,0 +1,77 @@
+:host {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .left,
+  .right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .right {
+    margin-left: auto;
+  }
+
+  .filter {
+    // Lumen's search box is 250px by default; the design is wider.
+    ::ng-deep .filter-search {
+      width: 320px;
+    }
+  }
+
+  // Lumen's segmented control is a grey track with a white sliding thumb.
+  // The design is a white bordered pill with the active option in accent.
+  .calendar {
+    --l-seg-track-bg: var(--bg-lightest);
+    --l-seg-item-color: var(--text-primary);
+    --l-seg-item-hover-color: var(--text-primary);
+    --l-seg-item-hover-bg: var(--bg-light);
+    --l-seg-selected-color: var(--accent);
+    --l-seg-thumb-bg: transparent;
+
+    padding: 2px;
+    border: 1px solid var(--separator-dark);
+    border-radius: 8px;
+    font-family: inherit;
+    box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
+
+    ::ng-deep .l-segmented__thumb {
+      box-shadow: none;
+    }
+
+    ::ng-deep .l-segmented__item {
+      min-height: 28px;
+      padding: 0 8px;
+      font-weight: 600;
+
+      + .l-segmented__item {
+        border-left: 1px solid var(--separator-dark);
+        border-radius: 0 6px 6px 0;
+      }
+
+      &:first-child {
+        border-radius: 6px 0 0 6px;
+      }
+    }
+  }
+
+  // Global form styles make date inputs full width; keep them compact here.
+  .date {
+    width: 140px;
+  }
+
+  .action {
+    l-icon {
+      display: inline-flex;
+    }
+  }
+}
