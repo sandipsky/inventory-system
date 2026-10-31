@@ -1,0 +1,44 @@
+:root {
+    /* ================= Accent (brand) ================= */
+    --accent: #4CB139;
+    --accent-bg: color-mix(in srgb, var(--accent) 9%, var(--bg-lightest));
+    --accent-dark: color-mix(in srgb, var(--accent) 78%, black);
+    --accent-contrast: var(--text-white);
+
+    /* ================= Status ================= */
+    --success: #36B37E;
+    --success-bg: #EBF7F2;
+
+    --error: #FF4530;
+    --error-bg: #FFECEA;
+
+    --warn: #FFAB00;
+    --warn-bg: #FFF7E6;
+
+    --info: #00B8D9;
+    --info-bg: #E6F0FC;
+
+    --premium: #AB20A9;
+    --premium-bg: #FBCEFA;
+
+    --cancel: var(--text-tertiary);
+    --cancel-bg: var(--bg-dark);
+
+    /* ================= Text Colors ================= */
+    --text-primary: #07090F;
+    --text-secondary: #555755;
+    --text-tertiary: #646663;
+    --text-quaternary: #979996;
+    --text-white: #F9FAFB;
+
+    /* ================= Separators ================= */
+    --separator: #E5E7EB;
+    --separator-light: #EBEDEB;
+    --separator-dark: #DDE0DC;
+
+    /* ================= Backgrounds ================= */
+    --bg-lightest: #FEFEFE;
+    --bg-light: #F7F7F7;
+    --bg-semi-light: #F6F7F5;
+    --bg-dark: #EBEDEB;
+}

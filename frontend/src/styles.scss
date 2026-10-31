@@ -1,1 +1,17 @@
-/* You can add global styles to this file, and also import other style files */
+@use './styles/colors';
+@use './styles/utils';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 400;
+  background: var(--bg-lightest);
+}
