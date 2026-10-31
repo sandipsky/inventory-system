@@ -1,1 +1,53 @@
-<p>sidebar-item works!</p>
+@if (hasChildren()) {
+  <button
+    type="button"
+    class="item"
+    [class.active]="groupActive() && !expanded()"
+    [class.open]="expanded()"
+    [class.collapsed]="collapsed()"
+    [attr.aria-expanded]="expanded()"
+    [lTooltip]="collapsed() ? item().label : ''"
+    lTooltipPlacement="right"
+    (click)="toggle()"
+  >
+    <l-icon class="icon" [name]="item().icon" [size]="20" color="inherit" />
+    <span class="label">{{ item().label }}</span>
+    <l-icon class="caret" name="caret" [size]="14" color="inherit" />
+  </button>
+
+  @if (expanded()) {
+    <ul class="children">
+      @for (child of item().children; track child.route) {
+        <li>
+          <a
+            class="item child"
+            [class.collapsed]="collapsed()"
+            [routerLink]="child.route"
+            routerLinkActive="active"
+            [lTooltip]="collapsed() ? child.label : ''"
+            lTooltipPlacement="right"
+          >
+            @if (child.icon) {
+              <l-icon class="icon" [name]="child.icon" [size]="18" color="inherit" />
+            } @else {
+              <span class="initial">{{ child.label.charAt(0) }}</span>
+            }
+            <span class="label">{{ child.label }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+} @else {
+  <a
+    class="item"
+    [class.collapsed]="collapsed()"
+    [routerLink]="item().route"
+    routerLinkActive="active"
+    [lTooltip]="collapsed() ? item().label : ''"
+    lTooltipPlacement="right"
+  >
+    <l-icon class="icon" [name]="item().icon" [size]="20" color="inherit" />
+    <span class="label">{{ item().label }}</span>
+  </a>
+}

@@ -15,6 +15,10 @@ export const routes: Routes = [
                 pathMatch: 'full'
             },
             {
+                path: 'dashboard',
+                loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard),
+            },
+            {
                 path: 'purchase',
                 loadChildren: () => import('./features/purchase/purchase.routes').then(m => m.PURCHASE_ROUTES),
             },

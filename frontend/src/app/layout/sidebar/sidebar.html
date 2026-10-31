@@ -1,1 +1,54 @@
-<p>sidebar works!</p>
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <div class="top">
+    @if (collapsed()) {
+      <img class="logo mark" src="assets/images/logo/abis-a.svg" alt="ABIS" width="34" height="28">
+    } @else {
+      <img class="logo" src="assets/images/logo/abis.svg" alt="ABIS" width="90" height="28">
+    }
+    <button
+      type="button"
+      class="toggle"
+      [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      (click)="toggleCollapsed()"
+    >
+      <l-icon name="caret" [size]="14" color="inherit" />
+    </button>
+  </div>
+
+  @if (!collapsed()) {
+    <label class="search">
+      <l-icon name="search" [size]="18" color="var(--text-quaternary)" />
+      <input
+        type="search"
+        placeholder="Search"
+        [value]="search()"
+        (input)="onSearch($event)"
+        (keydown.escape)="clearSearch()"
+      >
+      @if (searching()) {
+        <button type="button" class="clear" aria-label="Clear search" (click)="clearSearch()">
+          <l-icon name="cross" [size]="14" color="inherit" />
+        </button>
+      }
+    </label>
+  }
+
+  <nav class="nav">
+    @for (section of filteredSections(); track section.title) {
+      <div class="section">
+        <div class="title">{{ section.title }}</div>
+        @for (item of section.items; track item.route) {
+          <app-sidebar-item [item]="item" [collapsed]="collapsed()" [forceOpen]="searching()" />
+        }
+      </div>
+    } @empty {
+      <div class="empty">No menu items match "{{ search().trim() }}"</div>
+    }
+  </nav>
+
+  <div class="footer">
+    @for (item of footerItems; track item.route) {
+      <app-sidebar-item [item]="item" [collapsed]="collapsed()" />
+    }
+  </div>
+</aside>
