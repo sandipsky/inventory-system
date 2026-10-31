@@ -1,5 +1,6 @@
 package com.sandipsky.inventory_system.features.reports.purchase.controllers;
 import com.sandipsky.inventory_system.features.reports.purchase.services.PurchaseReportService;
+import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByBatchReportDTO;
 import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByProductReportDTO;
 import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByVendorReportDTO;
 import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseReportRowDTO;
@@ -42,5 +43,14 @@ public class PurchaseReportController {
             @RequestParam(required = false) String toDate,
             @RequestParam(required = false, defaultValue = "AD") String dateType) {
         return service.getPurchaseByProduct(fromDate, toDate, dateType);
+    }
+
+    @GetMapping("/batch")
+    @RequiresOperation("ViewPurchaseEntry")
+    public List<PurchaseByBatchReportDTO> getPurchaseByBatch(
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false, defaultValue = "AD") String dateType) {
+        return service.getPurchaseByBatch(fromDate, toDate, dateType);
     }
 }

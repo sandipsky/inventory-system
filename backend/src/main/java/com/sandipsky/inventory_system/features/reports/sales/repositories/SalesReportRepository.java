@@ -45,4 +45,19 @@ public interface SalesReportRepository extends JpaRepository<MasterSalesEntry, I
             """)
     List<com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByProductReportDTO> findSalesByProduct(
             @Param("fromDate") String fromDate, @Param("toDate") String toDate);
+
+    @Query("""
+                SELECT new com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByBatchReportDTO(
+                    p.id, p.name, CASE WHEN b.batchNo IS NULL THEN 0 ELSE b.id END, b.batchNo, b.expiryDate,
+                    SUM(se.quantity), SUM(se.quantity * se.sellingPrice))
+                FROM SalesEntry se JOIN se.product p LEFT JOIN se.batch b, MasterSalesEntry m
+                WHERE se.masterSalesEntryId = m.id
+                  AND m.isCancelled = false
+                  AND (:fromDate IS NULL OR m.date >= :fromDate)
+                  AND (:toDate IS NULL OR m.date <= :toDate)
+                GROUP BY p.id, p.name, b.id, b.batchNo, b.expiryDate
+                ORDER BY p.name, b.batchNo
+            """)
+    List<com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByBatchReportDTO> findSalesByBatch(
+            @Param("fromDate") String fromDate, @Param("toDate") String toDate);
 }

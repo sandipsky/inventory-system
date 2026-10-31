@@ -57,14 +57,27 @@ public interface AccountingReportRepository extends JpaRepository<JournalEntry, 
     List<com.sandipsky.inventory_system.features.reports.accounting.dtos.TrialBalanceRowDTO> findTrialBalance(
             @Param("fromDate") String fromDate, @Param("toDate") String toDate);
 
+    // Accounts receivable: credit sales the customer has not fully paid
     @Query("""
-                SELECT new com.sandipsky.inventory_system.features.reports.accounting.dtos.DueAmountReportRowDTO(
-                    c.id, c.name, m.systemEntryNo, m.date,
+                SELECT new com.sandipsky.inventory_system.features.reports.accounting.dtos.OutstandingInvoiceReportRowDTO(
+                    'Customer', c.id, c.name, m.systemEntryNo, m.date,
                     adi.totalInvoiceAmount, adi.paidAmount, adi.dueAmount)
                 FROM AmountDueInvoice adi, MasterSalesEntry m JOIN m.customer c
                 WHERE adi.invoiceNumber = m.systemEntryNo
                   AND adi.dueAmount > 0
                 ORDER BY c.name, m.date
             """)
-    List<com.sandipsky.inventory_system.features.reports.accounting.dtos.DueAmountReportRowDTO> findSalesDueAmounts();
+    List<com.sandipsky.inventory_system.features.reports.accounting.dtos.OutstandingInvoiceReportRowDTO> findReceivables();
+
+    // Accounts payable: credit purchases we have not fully paid the vendor for
+    @Query("""
+                SELECT new com.sandipsky.inventory_system.features.reports.accounting.dtos.OutstandingInvoiceReportRowDTO(
+                    'Vendor', v.id, v.name, m.systemEntryNo, m.date,
+                    adi.totalInvoiceAmount, adi.paidAmount, adi.dueAmount)
+                FROM AmountDueInvoice adi, MasterPurchaseEntry m JOIN m.vendor v
+                WHERE adi.invoiceNumber = m.systemEntryNo
+                  AND adi.dueAmount > 0
+                ORDER BY v.name, m.date
+            """)
+    List<com.sandipsky.inventory_system.features.reports.accounting.dtos.OutstandingInvoiceReportRowDTO> findPayables();
 }

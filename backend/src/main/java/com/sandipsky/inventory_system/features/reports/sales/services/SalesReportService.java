@@ -1,5 +1,6 @@
 package com.sandipsky.inventory_system.features.reports.sales.services;
 import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByCustomerReportDTO;
+import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByBatchReportDTO;
 import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByProductReportDTO;
 import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesReportRowDTO;
 import com.sandipsky.inventory_system.features.reports.sales.repositories.SalesReportRepository;
@@ -31,6 +32,11 @@ public class SalesReportService {
     public List<SalesByProductReportDTO> getSalesByProduct(String fromDate, String toDate, String dateType) {
         ReportDateUtil.validateDateType(dateType);
         return repository.findSalesByProduct(fromDate, toDate);
+    }
+
+    public List<SalesByBatchReportDTO> getSalesByBatch(String fromDate, String toDate, String dateType) {
+        ReportDateUtil.validateDateType(dateType);
+        return repository.findSalesByBatch(fromDate, toDate);
     }
 
     private SalesReportRowDTO mapToRow(MasterSalesEntry entity) {

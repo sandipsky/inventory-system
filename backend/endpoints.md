@@ -977,11 +977,11 @@ Key fields:
 - **`payment_mode_id`** is the account the money goes into or comes out of, e.g. the `Cash` account or a bank account from the chart of accounts.
 - **`paymentDetails`** lists which invoices this payment settles. It can be empty. You can settle them later with [payment adjustment](#payment-adjustment).
 
-**Step 1: See what a customer owes.** `GET /reports/accounting/due-amount`
+**Step 1: See what a customer owes.** `GET /reports/accounting/receivable`
 
 ```json
 [
-  { "customer_id": 6, "customer_name": "Ram Traders", "invoice_number": "|SI-000001", "invoice_date": "2026-10-31",
+  { "party_type": "Customer", "party_id": 6, "party_name": "Ram Traders", "invoice_number": "|SI-000001", "invoice_date": "2026-10-31",
     "total_invoice_amount": 1130.0, "paid_amount": 0.0, "due_amount": 1130.0 }
 ]
 ```
@@ -1039,7 +1039,7 @@ Key fields:
 
 `unadjusted_amount` is the part of the payment not yet applied to any invoice (an advance).
 
-**Paying a vendor** works the same way. Use the purchase number as the invoice number:
+**Paying a vendor** works the same way. `GET /reports/accounting/payable` lists what you owe (same row shape, with `party_type: "Vendor"`); use the purchase number as the invoice number:
 
 ```json
 {
@@ -1161,14 +1161,25 @@ Leave out the dates to get everything.
 | `GET /reports/purchase` | Purchase register: one row per purchase | `ViewPurchaseEntry` |
 | `GET /reports/purchase/vendor` | Purchases totalled per vendor | `ViewPurchaseEntry` |
 | `GET /reports/purchase/product` | Purchases totalled per product | `ViewPurchaseEntry` |
+| `GET /reports/purchase/batch` | Purchases totalled per product **batch** | `ViewPurchaseEntry` |
+| `GET /reports/purchase-return` | Purchase return register: one row per return | `ViewPurchaseReturn` |
+| `GET /reports/purchase-return/vendor` | Purchase returns totalled per vendor | `ViewPurchaseReturn` |
+| `GET /reports/purchase-return/product` | Purchase returns totalled per product | `ViewPurchaseReturn` |
+| `GET /reports/purchase-return/batch` | Purchase returns totalled per product batch | `ViewPurchaseReturn` |
 | `GET /reports/sales` | Sales register: one row per sale, including cancelled ones (`is_cancelled`) | `ViewSalesEntries` |
 | `GET /reports/sales/customer` | Sales totalled per customer (cancelled sales left out) | `ViewSalesEntries` |
-| `GET /reports/sales/product` | Sales totalled per product | `ViewSalesEntries` |
+| `GET /reports/sales/product` | Sales totalled per product (cancelled sales left out) | `ViewSalesEntries` |
+| `GET /reports/sales/batch` | Sales totalled per product batch (cancelled sales left out) | `ViewSalesEntries` |
+| `GET /reports/sales-return` | Sales return register: one row per return | `ViewSalesReturns` |
+| `GET /reports/sales-return/customer` | Sales returns totalled per customer | `ViewSalesReturns` |
+| `GET /reports/sales-return/product` | Sales returns totalled per product | `ViewSalesReturns` |
+| `GET /reports/sales-return/batch` | Sales returns totalled per product batch | `ViewSalesReturns` |
 | `GET /reports/inventory/stock` | Current stock and stock value of every product batch (no dates) | `ViewStockEdit` |
 | `GET /reports/accounting/journal` | Every journal line | `ViewAccount` |
 | `GET /reports/accounting/ledger/{accountId}` | One account's ledger with running balance | `ViewAccount` |
 | `GET /reports/accounting/trial-balance` | Trial balance of all accounts | `ViewAccount` |
-| `GET /reports/accounting/due-amount` | Unpaid customer invoices (no dates) | `ViewCustomerPayment` or `ViewAccount` |
+| `GET /reports/accounting/receivable` | Accounts receivable: unpaid customer invoices (no dates) | `ViewCustomerPayment` or `ViewAccount` |
+| `GET /reports/accounting/payable` | Accounts payable: unpaid vendor invoices (no dates) | `ViewVendorPayment` or `ViewAccount` |
 
 ### Examples
 
@@ -1184,12 +1195,34 @@ Leave out the dates to get everything.
 [ { "product_id": 31, "product_name": "Coca-Cola 500ml", "quantity": 20.0, "amount": 1000.0 } ]
 ```
 
+`GET /reports/purchase/batch` — the same totals split by batch. `amount` is quantity × line cost price on purchase-side reports and quantity × line selling price on sales-side reports. `batch_id` 0 is the product's default batch.
+
+```json
+[
+  { "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 0, "batch_no": null, "expiry_date": null,         "quantity": 10.0,  "amount": 420.0 },
+  { "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 1, "batch_no": "B1", "expiry_date": "2027-01-31", "quantity": 120.0, "amount": 4800.0 }
+]
+```
+
+The return reports (`/reports/purchase-return/…`, `/reports/sales-return/…`) have exactly the same shapes as their purchase and sales counterparts; the sales-return register has no `is_cancelled` (returns are deleted, not cancelled).
+
 `GET /reports/inventory/stock`
 
 ```json
 [
   { "id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 1, "batch_no": "B1", "expiry_date": "2027-01-31", "quantity": 100.0, "cost_price": 42.0, "selling_price": 52.0, "mrp": 56.0, "stock_value": 4200.0 },
   { "id": 2, "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 0, "batch_no": null, "expiry_date": null,         "quantity": 10.0,  "cost_price": 42.0, "selling_price": 52.0, "mrp": 57.0, "stock_value": 420.0 }
+]
+```
+
+`GET /reports/accounting/payable`
+
+Receivable and payable rows have the same shape; `party_type` tells you which (`Customer` on receivables, `Vendor` on payables) and `party_id` / `party_name` identify them.
+
+```json
+[
+  { "party_type": "Vendor", "party_id": 6, "party_name": "ABC Suppliers", "invoice_number": "|PE-000001", "invoice_date": "2026-10-30",
+    "total_invoice_amount": 5424.0, "paid_amount": 2000.0, "due_amount": 3424.0 }
 ]
 ```
 

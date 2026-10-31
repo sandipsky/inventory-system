@@ -1,8 +1,8 @@
 package com.sandipsky.inventory_system.features.reports.accounting.services;
-import com.sandipsky.inventory_system.features.reports.accounting.dtos.DueAmountReportRowDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.dtos.JournalReportRowDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.dtos.LedgerReportDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.dtos.LedgerReportRowDTO;
+import com.sandipsky.inventory_system.features.reports.accounting.dtos.OutstandingInvoiceReportRowDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.dtos.TrialBalanceRowDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.repositories.AccountingReportRepository;
 
@@ -79,7 +79,11 @@ public class AccountingReportService {
         return rows;
     }
 
-    public List<DueAmountReportRowDTO> getSalesDueAmountReport() {
-        return repository.findSalesDueAmounts();
+    public List<OutstandingInvoiceReportRowDTO> getReceivableReport() {
+        return repository.findReceivables();
+    }
+
+    public List<OutstandingInvoiceReportRowDTO> getPayableReport() {
+        return repository.findPayables();
     }
 }

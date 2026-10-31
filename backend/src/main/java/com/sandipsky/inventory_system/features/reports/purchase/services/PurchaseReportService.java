@@ -1,4 +1,5 @@
 package com.sandipsky.inventory_system.features.reports.purchase.services;
+import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByBatchReportDTO;
 import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByProductReportDTO;
 import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByVendorReportDTO;
 import com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseReportRowDTO;
@@ -31,6 +32,11 @@ public class PurchaseReportService {
     public List<PurchaseByProductReportDTO> getPurchaseByProduct(String fromDate, String toDate, String dateType) {
         ReportDateUtil.validateDateType(dateType);
         return repository.findPurchaseByProduct(fromDate, toDate);
+    }
+
+    public List<PurchaseByBatchReportDTO> getPurchaseByBatch(String fromDate, String toDate, String dateType) {
+        ReportDateUtil.validateDateType(dateType);
+        return repository.findPurchaseByBatch(fromDate, toDate);
     }
 
     private PurchaseReportRowDTO mapToRow(MasterPurchaseEntry entity) {

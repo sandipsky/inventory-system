@@ -1,8 +1,8 @@
 package com.sandipsky.inventory_system.features.reports.accounting.controllers;
 import com.sandipsky.inventory_system.features.reports.accounting.services.AccountingReportService;
-import com.sandipsky.inventory_system.features.reports.accounting.dtos.DueAmountReportRowDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.dtos.JournalReportRowDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.dtos.LedgerReportDTO;
+import com.sandipsky.inventory_system.features.reports.accounting.dtos.OutstandingInvoiceReportRowDTO;
 import com.sandipsky.inventory_system.features.reports.accounting.dtos.TrialBalanceRowDTO;
 
 import java.util.List;
@@ -45,9 +45,15 @@ public class AccountingReportController {
         return service.getTrialBalance(fromDate, toDate, dateType);
     }
 
-    @GetMapping("/due-amount")
+    @GetMapping("/receivable")
     @RequiresOperation({ "ViewCustomerPayment", "ViewAccount" })
-    public List<DueAmountReportRowDTO> getSalesDueAmountReport() {
-        return service.getSalesDueAmountReport();
+    public List<OutstandingInvoiceReportRowDTO> getReceivableReport() {
+        return service.getReceivableReport();
+    }
+
+    @GetMapping("/payable")
+    @RequiresOperation({ "ViewVendorPayment", "ViewAccount" })
+    public List<OutstandingInvoiceReportRowDTO> getPayableReport() {
+        return service.getPayableReport();
     }
 }

@@ -1,6 +1,7 @@
 package com.sandipsky.inventory_system.features.reports.sales.controllers;
 import com.sandipsky.inventory_system.features.reports.sales.services.SalesReportService;
 import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByCustomerReportDTO;
+import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByBatchReportDTO;
 import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesByProductReportDTO;
 import com.sandipsky.inventory_system.features.reports.sales.dtos.SalesReportRowDTO;
 
@@ -42,5 +43,14 @@ public class SalesReportController {
             @RequestParam(required = false) String toDate,
             @RequestParam(required = false, defaultValue = "AD") String dateType) {
         return service.getSalesByProduct(fromDate, toDate, dateType);
+    }
+
+    @GetMapping("/batch")
+    @RequiresOperation("ViewSalesEntries")
+    public List<SalesByBatchReportDTO> getSalesByBatch(
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false, defaultValue = "AD") String dateType) {
+        return service.getSalesByBatch(fromDate, toDate, dateType);
     }
 }

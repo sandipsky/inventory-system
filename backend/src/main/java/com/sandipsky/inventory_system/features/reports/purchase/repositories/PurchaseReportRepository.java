@@ -43,4 +43,18 @@ public interface PurchaseReportRepository extends JpaRepository<MasterPurchaseEn
             """)
     List<com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByProductReportDTO> findPurchaseByProduct(
             @Param("fromDate") String fromDate, @Param("toDate") String toDate);
+
+    @Query("""
+                SELECT new com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByBatchReportDTO(
+                    p.id, p.name, CASE WHEN b.batchNo IS NULL THEN 0 ELSE b.id END, b.batchNo, b.expiryDate,
+                    SUM(pe.quantity), SUM(pe.quantity * pe.costPrice))
+                FROM PurchaseEntry pe JOIN pe.product p LEFT JOIN pe.batch b, MasterPurchaseEntry m
+                WHERE pe.masterPurchaseEntryId = m.id
+                  AND (:fromDate IS NULL OR m.date >= :fromDate)
+                  AND (:toDate IS NULL OR m.date <= :toDate)
+                GROUP BY p.id, p.name, b.id, b.batchNo, b.expiryDate
+                ORDER BY p.name, b.batchNo
+            """)
+    List<com.sandipsky.inventory_system.features.reports.purchase.dtos.PurchaseByBatchReportDTO> findPurchaseByBatch(
+            @Param("fromDate") String fromDate, @Param("toDate") String toDate);
 }
