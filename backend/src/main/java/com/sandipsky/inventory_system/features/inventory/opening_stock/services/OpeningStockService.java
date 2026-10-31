@@ -9,6 +9,7 @@ import com.sandipsky.inventory_system.common.util.QueryParamUtil;
 import java.util.Map;
 import com.sandipsky.inventory_system.features.product.entities.Product;
 import com.sandipsky.inventory_system.features.product.entities.ProductStock;
+import com.sandipsky.inventory_system.features.product.services.ProductStockService;
 import com.sandipsky.inventory_system.common.exception.BadRequestException;
 import com.sandipsky.inventory_system.common.exception.DuplicateResourceException;
 import com.sandipsky.inventory_system.common.exception.ResourceNotFoundException;
@@ -28,6 +29,9 @@ public class OpeningStockService {
     @Autowired
     private ProductStockRepository productStockRepository;
 
+    @Autowired
+    private ProductStockService productStockService;
+
     private final SpecificationBuilder<ProductStock> specBuilder = new SpecificationBuilder<>();
 
     public Page<OpeningStockDTO> getPaginatedOpeningStocksList(Map<String, String> params) {
@@ -38,22 +42,23 @@ public class OpeningStockService {
         return stockPage.map(this::mapToDTO);
     }
 
-    // Opening stock initializes the stock record for a product that has none yet
+    // Opening stock initializes a batch (the default one when no batch number is given) that
+    // the product does not have yet
     @Transactional
     public ProductStock saveOpeningStock(OpeningStockDTO dto) {
         Product product = productRepository.findById(dto.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        if (productStockRepository.findByProductId(product.getId()) != null) {
+        ProductStock productStock = productStockService.findOrCreateBatch(product, dto.getBatchNo(), null);
+        if (productStock.getId() != 0) {
             throw new DuplicateResourceException(
-                    "Stock already exists for this product. Use Stock Adjustment or Stock Edit instead.");
+                    "Stock already exists for this product batch. Use Stock Adjustment or Stock Edit instead.");
         }
+        productStock.setExpiryDate(dto.getExpiryDate());
         if (dto.getQuantity() == null || dto.getQuantity() < 0) {
             throw new BadRequestException("Opening quantity cannot be negative");
         }
 
-        ProductStock productStock = new ProductStock();
-        productStock.setProduct(product);
         productStock.setQuantity(dto.getQuantity());
         productStock.setCostPrice(dto.getCostPrice());
         productStock.setSellingPrice(dto.getSellingPrice());
@@ -68,6 +73,9 @@ public class OpeningStockService {
             dto.setProductId(entity.getProduct().getId());
             dto.setProductName(entity.getProduct().getName());
         }
+        dto.setBatchId(productStockService.batchId(entity));
+        dto.setBatchNo(entity.getBatchNo());
+        dto.setExpiryDate(entity.getExpiryDate());
         dto.setQuantity(entity.getQuantity());
         dto.setCostPrice(entity.getCostPrice());
         dto.setSellingPrice(entity.getSellingPrice());

@@ -150,7 +150,7 @@ A quick map of the main API areas:
 - **Masters** — products, categories, units, packings, tax types
 - **Purchases** — vendors, purchase entries, purchase returns
 - **Sales** — customers, sales entries, sales returns (entries are *cancelled*, not deleted)
-- **Inventory** — stock adjustments, stock edits, opening stock
+- **Inventory** — stock adjustments, stock edits, opening stock; stock is tracked **per product batch** (purchases create batches, sales pick one)
 - **Accounting** — chart of accounts, journal vouchers, payments, opening balances
 - **Reports** — purchase/sales registers, stock, ledgers, trial balance, dues
 - **Admin** — users (with profile images), roles & permissions, document numbering, settings
@@ -165,7 +165,7 @@ Saving a purchase or sales entry automatically updates stock **and** posts the m
 
 ## Troubleshooting
 
-- **"Not enough Quantity In Stock"** — you're trying to sell/return more than is available; check the stock report.
+- **"Not enough Quantity In Stock"** — you're trying to sell/return more than the chosen batch holds; check the stock report (one row per batch).
 - **Errors about missing accounts (e.g. "VAT Purchase")** — the database wasn't seeded. With Docker this can't normally happen; from source, run `./reset.sh` before first start.
 - **Port 8080 already in use** — map a different one: `-p 9090:8080` (Docker) and use `http://localhost:9090`.
 - **Fresh start wanted (Docker)** — `docker rm -f inventory-system-be && docker volume rm inventory-data inventory-uploads`, then run again. ⚠️ This deletes all data.

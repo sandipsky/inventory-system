@@ -30,6 +30,7 @@ import com.sandipsky.inventory_system.features.accounting.journal.repositories.M
 import com.sandipsky.inventory_system.features.purchase.vendor.repositories.VendorRepository;
 import com.sandipsky.inventory_system.features.product.repositories.ProductRepository;
 import com.sandipsky.inventory_system.features.product.repositories.ProductStockRepository;
+import com.sandipsky.inventory_system.features.product.services.ProductStockService;
 import com.sandipsky.inventory_system.common.util.SpecificationBuilder;
 
 import org.springframework.data.domain.*;
@@ -53,6 +54,9 @@ public class PurchaseReturnService {
 
     @Autowired
     private ProductStockRepository productStockRepository;
+
+    @Autowired
+    private ProductStockService productStockService;
 
     @Autowired
     private MasterJournalEntryRepository masterJournalEntryRepository;
@@ -94,6 +98,10 @@ public class PurchaseReturnService {
                                 itemDto.setMasterPurchaseReturnId(item.getMasterPurchaseReturnId());
                                 itemDto.setProductId(item.getProduct().getId());
                                 itemDto.setProductName(item.getProduct().getName());
+                                if (item.getBatch() != null) {
+                                    itemDto.setBatchId(productStockService.batchId(item.getBatch()));
+                                    itemDto.setBatchNo(item.getBatch().getBatchNo());
+                                }
                                 return itemDto;
                             }).toList());
         }
@@ -103,6 +111,8 @@ public class PurchaseReturnService {
     @Transactional
     public MasterPurchaseReturn saveMasterPurchaseReturn(MasterPurchaseReturnDTO dto) {
         LineItemUtil.validateLines(dto.getPurchaseReturnEntries(), PurchaseReturnEntryDTO::getQuantity);
+        List<PurchaseReturnEntryDTO> lines = dto.getPurchaseReturnEntries();
+        rejectDuplicateBatches(lines);
 
         MasterPurchaseReturn masterPurchaseReturn = new MasterPurchaseReturn();
         masterPurchaseReturn.setSystemEntryNo(documentNumberService.generatePurchaseReturnNumber());
@@ -110,23 +120,23 @@ public class PurchaseReturnService {
 
         MasterPurchaseReturn savedEntry = repository.save(masterPurchaseReturn);
 
-        if (dto.getPurchaseReturnEntries() != null) {
-            for (PurchaseReturnEntryDTO item : dto.getPurchaseReturnEntries()) {
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        for (PurchaseReturnEntryDTO item : lines) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-                PurchaseReturnEntry returnEntry = new PurchaseReturnEntry();
-                returnEntry.setQuantity(item.getQuantity());
-                returnEntry.setCostPrice(item.getCostPrice());
-                returnEntry.setSellingPrice(item.getSellingPrice());
-                returnEntry.setMrp(item.getMrp());
-                returnEntry.setMasterPurchaseReturnId(savedEntry.getId());
-                returnEntry.setProduct(product);
-                purchaseReturnEntryRepository.save(returnEntry);
+            // Returning goods to vendor reduces the batch picked on the line
+            ProductStock batch = productStockService.findBatch(product, item.getBatchId());
+            removeFromStock(batch, item.getQuantity());
 
-                // Returning goods to vendor reduces stock
-                removeFromStock(product.getId(), item.getQuantity());
-            }
+            PurchaseReturnEntry returnEntry = new PurchaseReturnEntry();
+            returnEntry.setQuantity(item.getQuantity());
+            returnEntry.setCostPrice(item.getCostPrice());
+            returnEntry.setSellingPrice(item.getSellingPrice());
+            returnEntry.setMrp(item.getMrp());
+            returnEntry.setMasterPurchaseReturnId(savedEntry.getId());
+            returnEntry.setProduct(product);
+            returnEntry.setBatch(batch);
+            purchaseReturnEntryRepository.save(returnEntry);
         }
 
         createJournalEntries(savedEntry);
@@ -137,6 +147,8 @@ public class PurchaseReturnService {
     @Transactional
     public MasterPurchaseReturn updateMasterPurchaseReturn(int id, MasterPurchaseReturnDTO dto) {
         LineItemUtil.validateLines(dto.getPurchaseReturnEntries(), PurchaseReturnEntryDTO::getQuantity);
+        List<PurchaseReturnEntryDTO> lines = dto.getPurchaseReturnEntries();
+        rejectDuplicateBatches(lines);
 
         MasterPurchaseReturn masterPurchaseReturn = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Return with Given Id not found"));
@@ -147,46 +159,46 @@ public class PurchaseReturnService {
         List<PurchaseReturnEntry> existingEntries = purchaseReturnEntryRepository
                 .findByMasterPurchaseReturnId(savedEntry.getId());
         List<Integer> incomingIds = new ArrayList<>();
-        if (dto.getPurchaseReturnEntries() != null) {
-            for (PurchaseReturnEntryDTO itemDto : dto.getPurchaseReturnEntries()) {
-                incomingIds.add(itemDto.getId());
-            }
+        for (PurchaseReturnEntryDTO itemDto : lines) {
+            incomingIds.add(itemDto.getId());
         }
 
         for (PurchaseReturnEntry existing : existingEntries) {
             if (!incomingIds.contains(existing.getId())) {
                 // Removed return line: goods stay with us, add the quantity back
-                addToStock(existing.getProduct().getId(), existing.getQuantity());
+                addToStock(productStockService.lineBatch(existing.getBatch(), existing.getProduct()),
+                        existing.getQuantity());
                 purchaseReturnEntryRepository.delete(existing);
             }
         }
 
-        if (dto.getPurchaseReturnEntries() != null) {
-            for (PurchaseReturnEntryDTO item : dto.getPurchaseReturnEntries()) {
-                PurchaseReturnEntry returnEntry;
-                if (item.getId() != 0) {
-                    returnEntry = purchaseReturnEntryRepository.findById(item.getId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Purchase Return Entry not found"));
-                } else {
-                    returnEntry = new PurchaseReturnEntry();
-                }
-                Double tempQuantity = returnEntry.getQuantity() != null ? returnEntry.getQuantity() : 0.0;
-
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-                returnEntry.setQuantity(item.getQuantity());
-                returnEntry.setCostPrice(item.getCostPrice());
-                returnEntry.setSellingPrice(item.getSellingPrice());
-                returnEntry.setMrp(item.getMrp());
-                returnEntry.setMasterPurchaseReturnId(savedEntry.getId());
-                returnEntry.setProduct(product);
-                purchaseReturnEntryRepository.save(returnEntry);
-
-                // Reverse the previously returned quantity, then apply the new one
-                addToStock(product.getId(), tempQuantity);
-                removeFromStock(product.getId(), item.getQuantity());
+        for (PurchaseReturnEntryDTO item : lines) {
+            PurchaseReturnEntry returnEntry;
+            if (item.getId() != 0) {
+                returnEntry = purchaseReturnEntryRepository.findById(item.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Purchase Return Entry not found"));
+                // Reverse the previously returned quantity in the batch it came out of
+                addToStock(productStockService.lineBatch(returnEntry.getBatch(), returnEntry.getProduct()),
+                        returnEntry.getQuantity());
+            } else {
+                returnEntry = new PurchaseReturnEntry();
             }
+
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+            // Then return the new quantity from the batch picked now
+            ProductStock batch = productStockService.findBatch(product, item.getBatchId());
+            removeFromStock(batch, item.getQuantity());
+
+            returnEntry.setQuantity(item.getQuantity());
+            returnEntry.setCostPrice(item.getCostPrice());
+            returnEntry.setSellingPrice(item.getSellingPrice());
+            returnEntry.setMrp(item.getMrp());
+            returnEntry.setMasterPurchaseReturnId(savedEntry.getId());
+            returnEntry.setProduct(product);
+            returnEntry.setBatch(batch);
+            purchaseReturnEntryRepository.save(returnEntry);
         }
 
         createJournalEntries(savedEntry);
@@ -201,7 +213,7 @@ public class PurchaseReturnService {
 
         for (PurchaseReturnEntry item : masterPurchaseReturn.getPurchaseReturnEntries()) {
             // Deleting the return brings the goods back into stock
-            addToStock(item.getProduct().getId(), item.getQuantity());
+            addToStock(productStockService.lineBatch(item.getBatch(), item.getProduct()), item.getQuantity());
             purchaseReturnEntryRepository.deleteById(item.getId());
         }
 
@@ -209,17 +221,26 @@ public class PurchaseReturnService {
         repository.deleteById(id);
     }
 
-    private void addToStock(int productId, Double quantity) {
-        ProductStock productStock = productStockRepository.findByProductId(productId);
-        if (productStock == null) {
-            throw new ResourceNotFoundException("Product Stock not found");
-        }
+    private void rejectDuplicateBatches(List<PurchaseReturnEntryDTO> lines) {
+        LineItemUtil.rejectDuplicateBatches(lines,
+                line -> List.of(line.getProductId(), line.getBatchId()),
+                line -> {
+                    String product = productRepository.findById(line.getProductId()).map(Product::getName)
+                            .orElse("Product " + line.getProductId());
+                    String batch = line.getBatchId() == 0 ? null
+                            : productStockRepository.findById(line.getBatchId()).map(ProductStock::getBatchNo)
+                                    .orElse("#" + line.getBatchId());
+                    return product + (batch == null ? " (default batch)" : " batch " + batch);
+                });
+    }
+
+    private void addToStock(ProductStock productStock, Double quantity) {
         productStock.setQuantity(productStock.getQuantity() + quantity);
         productStockRepository.save(productStock);
     }
 
-    private void removeFromStock(int productId, Double quantity) {
-        ProductStock productStock = productStockRepository.findByProductId(productId);
+    // A null batch is a default batch the product does not have yet
+    private void removeFromStock(ProductStock productStock, Double quantity) {
         if (productStock == null) {
             throw new BadRequestException("Not enough Quantity In Stock");
         }
@@ -287,6 +308,9 @@ public class PurchaseReturnService {
                 journalEntryRepository.delete(existingEntry);
             }
             masterJournalEntryRepository.delete(existing);
+            // Flush now: the replacement journal is inserted immediately (identity id) and reuses
+            // the same system_entry_no, so the delete must reach the database first
+            masterJournalEntryRepository.flush();
         }
     }
 

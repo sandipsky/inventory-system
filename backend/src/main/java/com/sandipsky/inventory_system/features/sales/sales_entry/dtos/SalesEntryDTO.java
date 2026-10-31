@@ -29,4 +29,11 @@ public class SalesEntryDTO {
 
     @JsonProperty("product_name")
     private String productName;
+
+    // Picked from the product's stock info; 0 means the default batch
+    @JsonProperty("batch_id")
+    private int batchId;
+
+    @JsonProperty("batch_no")
+    private String batchNo;
 }

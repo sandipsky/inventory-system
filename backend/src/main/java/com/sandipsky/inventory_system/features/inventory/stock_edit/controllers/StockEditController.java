@@ -27,17 +27,18 @@ public class StockEditController {
         return service.getPaginatedProductStocksList(params);
     }
 
-    @GetMapping("/{productId}")
+    // {batchId} is the batch_id from the product stock info; 0 is the product's default batch
+    @GetMapping("/{productId}/{batchId}")
     @RequiresOperation("ViewStockEdit")
-    public StockEditDTO getProductStock(@PathVariable int productId) {
-        return service.getProductStockByProductId(productId);
+    public StockEditDTO getProductStock(@PathVariable int productId, @PathVariable int batchId) {
+        return service.getProductStock(productId, batchId);
     }
 
-    @PutMapping("/{productId}")
+    @PutMapping("/{productId}/{batchId}")
     @RequiresOperation("EditStockEdit")
     public ResponseEntity<ApiResponse<ProductStock>> updateProductStock(@PathVariable int productId,
-            @RequestBody StockEditDTO stockEditDTO) {
-        ProductStock res = service.updateProductStock(productId, stockEditDTO);
+            @PathVariable int batchId, @RequestBody StockEditDTO stockEditDTO) {
+        ProductStock res = service.updateProductStock(productId, batchId, stockEditDTO);
         return ResponseEntity.ok(ResponseUtil.success(res.getId(), "Stock Updated successfully"));
     }
 }

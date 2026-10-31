@@ -8,12 +8,16 @@ import org.springframework.stereotype.Service;
 
 import com.sandipsky.inventory_system.features.product.entities.ProductStock;
 import com.sandipsky.inventory_system.features.product.repositories.ProductStockRepository;
+import com.sandipsky.inventory_system.features.product.services.ProductStockService;
 
 @Service
 public class ProductStockReportService {
 
     @Autowired
     private ProductStockRepository productStockRepository;
+
+    @Autowired
+    private ProductStockService productStockService;
 
     public List<ProductStockReportRowDTO> getProductStockReport() {
         return productStockRepository.findAll().stream().map(this::mapToRow).toList();
@@ -26,6 +30,9 @@ public class ProductStockReportService {
             row.setProductId(entity.getProduct().getId());
             row.setProductName(entity.getProduct().getName());
         }
+        row.setBatchId(productStockService.batchId(entity));
+        row.setBatchNo(entity.getBatchNo());
+        row.setExpiryDate(entity.getExpiryDate());
         row.setQuantity(entity.getQuantity());
         row.setCostPrice(entity.getCostPrice());
         row.setSellingPrice(entity.getSellingPrice());

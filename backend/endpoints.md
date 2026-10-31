@@ -156,6 +156,7 @@ A paged response looks like this (the list is in `content`):
 - **Product flags have no `is_` prefix:** send `purchasable`, `sellable`, `service_item`.
 - **Tax field name differs:** purchases use **`tax`**, sales use **`total_tax`**.
 - **Dates** are plain strings in `YYYY-MM-DD` format (e.g. `"2026-10-31"`).
+- **Batches:** stock is tracked per product batch. Purchases and sales returns **type** a `batch_no` (optional; new numbers create batches); sales, purchase returns and stock adjustments **pick** a `batch_id` from `GET /products/stockInfo/{id}` (`0` or omitted = the product's default batch). Each product batch may appear on only one line of a document.
 - **Document numbers** look like `|PE-000001`. The leading `|` is part of the number. Use it exactly as returned.
 
 ### Permissions
@@ -380,7 +381,7 @@ Permissions: `ViewProduct`, `CreateProduct`, `EditProduct`, `DeleteProduct`
 |---|---|---|
 | `GET` | `/products` | Paged list (filter e.g. `?name=coca`, `?category.name=bev`) |
 | `GET` | `/products/{id}` | One product |
-| `GET` | `/products/stockInfo/{id}` | Current stock and prices of a product |
+| `GET` | `/products/stockInfo/{id}` | Current stock and prices of a product, one row per batch |
 | `POST` | `/products` | Create |
 | `PUT` | `/products/{id}` | Update |
 | `DELETE` | `/products/{id}` | Delete |
@@ -448,13 +449,19 @@ Permissions: `ViewProduct`, `CreateProduct`, `EditProduct`, `DeleteProduct`
 
 ### Check stock
 
+Stock is kept **per batch**. A product gets a batch every time a purchase, sales return or opening stock names a new `batch_no`; quantities and prices are tracked for each batch separately. Lines that give no batch number go into the product's **default batch**, which has `batch_no: null` and is **always `batch_id: 0`** (everywhere: here, on document lines and in the stock-edit path). Batch numbers are unique per product.
+
 `GET /products/stockInfo/31`
 
 ```json
-{ "id": 1, "available_quantity": 130.0, "cost_price": 40.0, "selling_price": 50.0, "mrp": 55.0 }
+[
+  { "batch_id": 0, "batch_no": null,   "expiry_date": null,         "available_quantity": 7.0,  "cost_price": 42.0, "selling_price": 52.0, "mrp": 57.0 },
+  { "batch_id": 1, "batch_no": "B1",   "expiry_date": "2027-01-31", "available_quantity": 15.0, "cost_price": 40.0, "selling_price": 50.0, "mrp": 55.0 },
+  { "batch_id": 3, "batch_no": "B2",   "expiry_date": "2027-06-30", "available_quantity": 3.0,  "cost_price": 43.0, "selling_price": 53.0, "mrp": 58.0 }
+]
 ```
 
-A brand-new product that has never had stock (no opening stock or purchase yet) returns `available_quantity: 0`, with the product's own prices and `id: 0`.
+Use this list to fill the **batch dropdown** on sales and purchase-return lines (send the chosen `batch_id`). A brand-new product that has never had stock (no opening stock or purchase yet) returns a single row with `available_quantity: 0`, the product's own prices and `batch_id: 0`.
 
 ---
 
@@ -582,13 +589,15 @@ Permissions: `ViewOpeningStock`, `CreateOpeningStock`
 | Method | Path | What it does |
 |---|---|---|
 | `GET` | `/opening-stock` | Paged list (e.g. `?product.name=coca`) |
-| `POST` | `/opening-stock` | Set opening stock for a product |
+| `POST` | `/opening-stock` | Set opening stock for a product batch |
 
 `POST /opening-stock`
 
 ```json
-{ "product_id": 31, "quantity": 10, "cost_price": 40, "selling_price": 50, "mrp": 55 }
+{ "product_id": 31, "batch_no": "B1", "expiry_date": "2027-01-31", "quantity": 10, "cost_price": 40, "selling_price": 50, "mrp": 55 }
 ```
+
+`batch_no` and `expiry_date` are optional. Leave `batch_no` out to set the product's default batch (`batch_id` 0). Each batch can get opening stock only once (**409** otherwise). The list shows one row per batch, with `batch_id`, `batch_no` and `expiry_date`.
 
 ### Stock adjustment
 
@@ -612,11 +621,13 @@ Permissions: `ViewStockAdjustment`, `CreateStockAdjustment` (also needed for `ge
   "date": "2026-10-31",
   "remarks": "Monthly stock count",
   "stockAdjustmentEntries": [
-    { "product_id": 31, "adjustment_type": "Out", "quantity": 3, "reason": "Broken bottles" },
+    { "product_id": 31, "batch_id": 1, "adjustment_type": "Out", "quantity": 3, "reason": "Broken bottles" },
     { "product_id": 31, "adjustment_type": "In",  "quantity": 1, "reason": "Found in back store" }
   ]
 }
 ```
+
+`batch_id` picks the batch to adjust (from the product's stock info); leave it out or send `0` for the default batch.
 
 `GET /stock-adjustment/1`
 
@@ -627,31 +638,33 @@ Permissions: `ViewStockAdjustment`, `CreateStockAdjustment` (also needed for `ge
   "system_entry_no": "|SA-000001",
   "remarks": "Monthly stock count",
   "stockAdjustmentEntries": [
-    { "id": 1, "master_stock_adjustment_id": 1, "adjustment_type": "Out", "quantity": 3.0, "reason": "Broken bottles", "product_id": 31, "product_name": "Coca-Cola 500ml" },
-    { "id": 2, "master_stock_adjustment_id": 1, "adjustment_type": "In",  "quantity": 1.0, "reason": "Found in back store", "product_id": 31, "product_name": "Coca-Cola 500ml" }
+    { "id": 1, "master_stock_adjustment_id": 1, "adjustment_type": "Out", "quantity": 3.0, "reason": "Broken bottles", "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 1, "batch_no": "B1" },
+    { "id": 2, "master_stock_adjustment_id": 1, "adjustment_type": "In",  "quantity": 1.0, "reason": "Found in back store", "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 0, "batch_no": null }
   ]
 }
 ```
 
 > At least one line is required. `adjustment_type` must be exactly `In` or `Out`. `quantity` must be more than 0. You can't take out more than is in stock.
-> A product that has never had stock can't be adjusted. Add opening stock or a purchase first.
+> A batch that does not exist yet can't be adjusted. Add opening stock or a purchase first.
 
 ### Stock edit
 
-Directly overwrite a product's current quantity and prices.
+Directly overwrite one batch's current quantity, prices and expiry date.
 
 Permissions: `ViewStockEdit`, `EditStockEdit`
 
 | Method | Path | What it does |
 |---|---|---|
-| `GET` | `/stock-edit` | Paged list of product stock |
-| `GET` | `/stock-edit/{productId}` | Stock of one product |
-| `PUT` | `/stock-edit/{productId}` | Overwrite quantity and prices |
+| `GET` | `/stock-edit` | Paged list of product stock, one row per batch (e.g. `?product.name=coca`) |
+| `GET` | `/stock-edit/{productId}/{batchId}` | One batch of a product |
+| `PUT` | `/stock-edit/{productId}/{batchId}` | Overwrite its quantity, prices and expiry date |
 
-`PUT /stock-edit/31`
+`{batchId}` is the `batch_id` from the product's stock info; `0` is the product's default batch.
+
+`PUT /stock-edit/31/1`
 
 ```json
-{ "quantity": 100, "cost_price": 42, "selling_price": 52, "mrp": 56 }
+{ "quantity": 100, "cost_price": 42, "selling_price": 52, "mrp": 56, "expiry_date": "2027-01-31" }
 ```
 
 > Stock edit sets the numbers directly and leaves no history. For normal corrections, prefer a **stock adjustment**.
@@ -664,7 +677,7 @@ Permissions: `ViewStockEdit`, `EditStockEdit`
 
 When you save a purchase, the server:
 
-1. **adds the quantities to stock**,
+1. **adds the quantities to stock**, batch by batch,
 2. **posts the accounting journal** automatically, and
 3. for **credit** purchases, records an amount due to the vendor that you can pay later (see [Payments](#12-payments)).
 
@@ -707,14 +720,18 @@ Permissions: `ViewPurchaseEntry`, `CreatePurchaseEntry` (also needed for `genera
   "grand_total": 5424,
   "remarks": "October stock",
   "purchaseEntries": [
-    { "product_id": 31, "quantity": 120, "cost_price": 40, "selling_price": 50, "mrp": 55 }
+    { "product_id": 31, "batch_no": "B1", "expiry_date": "2027-01-31", "quantity": 120, "cost_price": 40, "selling_price": 50, "mrp": 55 },
+    { "product_id": 31, "quantity": 10, "cost_price": 42, "selling_price": 52, "mrp": 57 }
   ]
 }
 ```
 
 - `date` is the date you record it. `bill_date` and `bill_no` come from the vendor's bill.
 - `bill_no` can't repeat for the same vendor.
-- Prices on each line also update the product's stock prices.
+- `batch_no` is **typed in** and optional: an unknown number **creates a new batch** for the product, a known one adds to that batch, and a blank one goes into the product's default batch. `expiry_date` is optional and is stored on the batch.
+- A product batch may appear **once per document**. A second line for the same product and batch fails with `"Coca-Cola 500ml batch B1 is entered on more than one line"` (or `"… (default batch) is entered on more than one line"` for two no-batch lines).
+- A batch has **one expiry date**. A date that differs from what the batch already has fails with `"Batch B1 of … already has expiry date …"`. Leave `expiry_date` blank to keep the batch's date; to correct a wrong date use **stock edit**.
+- Prices on each line update the prices of that batch and of the product.
 
 `GET /purchase/1`
 
@@ -739,7 +756,8 @@ Permissions: `ViewPurchaseEntry`, `CreatePurchaseEntry` (also needed for `genera
   "discount_type": "Flat",
   "remarks": "October stock",
   "purchaseEntries": [
-    { "id": 1, "master_purchase_entry_id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "quantity": 120.0, "cost_price": 40.0, "selling_price": 50.0, "mrp": 55.0 }
+    { "id": 1, "master_purchase_entry_id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 1, "batch_no": "B1", "expiry_date": "2027-01-31", "quantity": 120.0, "cost_price": 40.0, "selling_price": 50.0, "mrp": 55.0 },
+    { "id": 2, "master_purchase_entry_id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 0, "batch_no": null, "expiry_date": null, "quantity": 10.0, "cost_price": 42.0, "selling_price": 52.0, "mrp": 57.0 }
   ]
 }
 ```
@@ -749,13 +767,14 @@ Permissions: `ViewPurchaseEntry`, `CreatePurchaseEntry` (also needed for `genera
 - To **add** a line, leave out `id`.
 - Any line you leave out is **removed**.
 
-> You can't remove purchased stock that has already been sold. That fails with `"Product Stock is Already Used"`.
+> You can't remove purchased stock that has already been sold. That fails with `"Product Stock is Already Used"`. Changing a line's `batch_no` moves its quantity out of the old batch and into the new one, so the same rule applies to the old batch.
 
 ### Purchase return
 
 Sending goods back to a vendor. **Stock goes down.** The body is the same as a purchase, except:
-- there's no `bill_date`, and
-- the items go in **`purchaseReturnEntries`**.
+- there's no `bill_date`,
+- the items go in **`purchaseReturnEntries`**, and
+- each line **picks a batch** with `batch_id` (from the product's stock info) instead of typing a `batch_no`. Leave it out or send `0` for the default batch.
 
 Permissions: `ViewPurchaseReturn`, `CreatePurchaseReturn` (also needed for `generateNumber`), `EditPurchaseReturn`, `DeletePurchaseReturn`
 
@@ -787,10 +806,12 @@ Permissions: `ViewPurchaseReturn`, `CreatePurchaseReturn` (also needed for `gene
   "grand_total": 226,
   "remarks": "Expired items",
   "purchaseReturnEntries": [
-    { "product_id": 31, "quantity": 5, "cost_price": 40, "selling_price": 50, "mrp": 55 }
+    { "product_id": 31, "batch_id": 1, "quantity": 5, "cost_price": 40, "selling_price": 50, "mrp": 55 }
   ]
 }
 ```
+
+Returning more than the batch holds fails with `"Not enough Quantity In Stock"`; a `batch_id` of another product fails with `"Batch does not belong to …"`. On read each line also shows the batch's `batch_no`.
 
 ---
 
@@ -838,10 +859,12 @@ Permissions: `ViewSalesEntries`, `CreateSalesEntry` (also needed for `generateNu
   "grand_total": 1130,
   "remarks": "Credit sale",
   "salesEntries": [
-    { "product_id": 31, "quantity": 20, "cost_price": 40, "selling_price": 50, "mrp": 55 }
+    { "product_id": 31, "batch_id": 1, "quantity": 20, "cost_price": 40, "selling_price": 50, "mrp": 55 }
   ]
 }
 ```
+
+Each line **picks the batch it sells from** with `batch_id`, taken from `GET /products/stockInfo/{id}` (that call also gives you the batch's prices to prefill the line). Leave `batch_id` out or send `0` to sell from the default batch. A product batch may appear once per document; a repeated one fails with `"… batch B1 is entered on more than one line"`.
 
 `GET /sales/1`
 
@@ -866,12 +889,12 @@ Permissions: `ViewSalesEntries`, `CreateSalesEntry` (also needed for `generateNu
   "cancelled": false,
   "cancel_remarks": null,
   "salesEntries": [
-    { "id": 1, "master_sales_entry_id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "quantity": 20.0, "cost_price": 40.0, "selling_price": 50.0, "mrp": 55.0 }
+    { "id": 1, "master_sales_entry_id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 1, "batch_no": "B1", "quantity": 20.0, "cost_price": 40.0, "selling_price": 50.0, "mrp": 55.0 }
   ]
 }
 ```
 
-If there isn't enough stock, you get `"Not enough Quantity In Stock"`.
+If the chosen batch doesn't hold enough, you get `"Not enough Quantity In Stock"`. A `batch_id` that belongs to another product fails with `"Batch does not belong to …"`.
 
 **Updating** works like purchases: lines with an `id` are kept, lines without an `id` are added, and missing lines are removed.
 
@@ -892,7 +915,7 @@ A cancelled sale can't be edited or cancelled again. A credit sale that already 
 
 ### Sales return
 
-A customer brings goods back. **Stock goes up.** Same body as a sale, but the items go in **`salesReturnEntries`**.
+A customer brings goods back. **Stock goes up.** Same body as a sale, but the items go in **`salesReturnEntries`**, and like a purchase each line **types in** a `batch_no` (optional, with an optional `expiry_date`) instead of picking a `batch_id`: a known number puts the goods back into that batch, an unknown one **creates a new batch** priced from the line, and a blank one uses the default batch.
 
 Permissions: `ViewSalesReturns`, `CreateSalesReturn` (also needed for `generateNumber`), `EditSalesReturn`, `DeleteSalesReturn`
 
@@ -923,7 +946,7 @@ Permissions: `ViewSalesReturns`, `CreateSalesReturn` (also needed for `generateN
   "grand_total": 113,
   "remarks": "2 damaged bottles",
   "salesReturnEntries": [
-    { "product_id": 31, "quantity": 2, "cost_price": 40, "selling_price": 50, "mrp": 55 }
+    { "product_id": 31, "batch_no": "B1", "quantity": 2, "cost_price": 40, "selling_price": 50, "mrp": 55 }
   ]
 }
 ```
@@ -1141,7 +1164,7 @@ Leave out the dates to get everything.
 | `GET /reports/sales` | Sales register: one row per sale, including cancelled ones (`is_cancelled`) | `ViewSalesEntries` |
 | `GET /reports/sales/customer` | Sales totalled per customer (cancelled sales left out) | `ViewSalesEntries` |
 | `GET /reports/sales/product` | Sales totalled per product | `ViewSalesEntries` |
-| `GET /reports/inventory/stock` | Current stock and stock value of every product (no dates) | `ViewStockEdit` |
+| `GET /reports/inventory/stock` | Current stock and stock value of every product batch (no dates) | `ViewStockEdit` |
 | `GET /reports/accounting/journal` | Every journal line | `ViewAccount` |
 | `GET /reports/accounting/ledger/{accountId}` | One account's ledger with running balance | `ViewAccount` |
 | `GET /reports/accounting/trial-balance` | Trial balance of all accounts | `ViewAccount` |
@@ -1164,7 +1187,10 @@ Leave out the dates to get everything.
 `GET /reports/inventory/stock`
 
 ```json
-[ { "id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "quantity": 100.0, "cost_price": 42.0, "selling_price": 52.0, "mrp": 56.0, "stock_value": 4200.0 } ]
+[
+  { "id": 1, "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 1, "batch_no": "B1", "expiry_date": "2027-01-31", "quantity": 100.0, "cost_price": 42.0, "selling_price": 52.0, "mrp": 56.0, "stock_value": 4200.0 },
+  { "id": 2, "product_id": 31, "product_name": "Coca-Cola 500ml", "batch_id": 0, "batch_no": null, "expiry_date": null,         "quantity": 10.0,  "cost_price": 42.0, "selling_price": 52.0, "mrp": 57.0, "stock_value": 420.0 }
+]
 ```
 
 `GET /reports/accounting/ledger/3?fromDate=2026-10-01&toDate=2026-10-31` (the Cash account)

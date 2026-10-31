@@ -7,7 +7,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.sandipsky.inventory_system.common.util.QueryParamUtil;
 import java.util.Map;
+import com.sandipsky.inventory_system.features.product.entities.Product;
 import com.sandipsky.inventory_system.features.product.entities.ProductStock;
+import com.sandipsky.inventory_system.features.product.repositories.ProductRepository;
+import com.sandipsky.inventory_system.features.product.services.ProductStockService;
 import com.sandipsky.inventory_system.common.exception.BadRequestException;
 import com.sandipsky.inventory_system.common.exception.ResourceNotFoundException;
 import com.sandipsky.inventory_system.features.product.repositories.ProductStockRepository;
@@ -22,6 +25,12 @@ public class StockEditService {
     @Autowired
     private ProductStockRepository productStockRepository;
 
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductStockService productStockService;
+
     private final SpecificationBuilder<ProductStock> specBuilder = new SpecificationBuilder<>();
 
     public Page<StockEditDTO> getPaginatedProductStocksList(Map<String, String> params) {
@@ -32,24 +41,18 @@ public class StockEditService {
         return stockPage.map(this::mapToDTO);
     }
 
-    public StockEditDTO getProductStockByProductId(int productId) {
-        ProductStock productStock = productStockRepository.findByProductId(productId);
-        if (productStock == null) {
-            throw new ResourceNotFoundException("Product Stock not found");
-        }
-        return mapToDTO(productStock);
+    public StockEditDTO getProductStock(int productId, int batchId) {
+        return mapToDTO(findBatch(productId, batchId));
     }
 
-    // Direct correction of the stored stock figures — no journal or document trail
+    // Direct correction of one batch's stored stock figures — no journal or document trail
     @Transactional
-    public ProductStock updateProductStock(int productId, StockEditDTO dto) {
-        ProductStock productStock = productStockRepository.findByProductId(productId);
-        if (productStock == null) {
-            throw new ResourceNotFoundException("Product Stock not found");
-        }
+    public ProductStock updateProductStock(int productId, int batchId, StockEditDTO dto) {
+        ProductStock productStock = findBatch(productId, batchId);
         if (dto.getQuantity() == null || dto.getQuantity() < 0) {
             throw new BadRequestException("Stock quantity cannot be negative");
         }
+        productStock.setExpiryDate(dto.getExpiryDate());
         productStock.setQuantity(dto.getQuantity());
         productStock.setCostPrice(dto.getCostPrice());
         productStock.setSellingPrice(dto.getSellingPrice());
@@ -57,13 +60,27 @@ public class StockEditService {
         return productStockRepository.save(productStock);
     }
 
+    // Batch id 0 is the product's default batch
+    private ProductStock findBatch(int productId, int batchId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        ProductStock productStock = productStockService.findBatch(product, batchId);
+        if (productStock == null) {
+            throw new ResourceNotFoundException("Product Stock not found");
+        }
+        return productStock;
+    }
+
     private StockEditDTO mapToDTO(ProductStock entity) {
         StockEditDTO dto = new StockEditDTO();
         dto.setId(entity.getId());
+        dto.setBatchId(productStockService.batchId(entity));
         if (entity.getProduct() != null) {
             dto.setProductId(entity.getProduct().getId());
             dto.setProductName(entity.getProduct().getName());
         }
+        dto.setBatchNo(entity.getBatchNo());
+        dto.setExpiryDate(entity.getExpiryDate());
         dto.setQuantity(entity.getQuantity());
         dto.setCostPrice(entity.getCostPrice());
         dto.setSellingPrice(entity.getSellingPrice());

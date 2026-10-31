@@ -22,6 +22,7 @@ import com.sandipsky.inventory_system.common.exception.BadRequestException;
 import com.sandipsky.inventory_system.common.exception.ResourceNotFoundException;
 import com.sandipsky.inventory_system.features.product.repositories.ProductRepository;
 import com.sandipsky.inventory_system.features.product.repositories.ProductStockRepository;
+import com.sandipsky.inventory_system.features.product.services.ProductStockService;
 import com.sandipsky.inventory_system.common.util.SpecificationBuilder;
 
 import org.springframework.data.domain.*;
@@ -42,6 +43,9 @@ public class StockAdjustmentService {
 
     @Autowired
     private ProductStockRepository productStockRepository;
+
+    @Autowired
+    private ProductStockService productStockService;
 
     @Autowired
     private DocumentNumberingService documentNumberService;
@@ -73,6 +77,10 @@ public class StockAdjustmentService {
                                 itemDto.setReason(item.getReason());
                                 itemDto.setProductId(item.getProduct().getId());
                                 itemDto.setProductName(item.getProduct().getName());
+                                if (item.getBatch() != null) {
+                                    itemDto.setBatchId(productStockService.batchId(item.getBatch()));
+                                    itemDto.setBatchNo(item.getBatch().getBatchNo());
+                                }
                                 return itemDto;
                             }).toList());
         }
@@ -82,6 +90,8 @@ public class StockAdjustmentService {
     @Transactional
     public MasterStockAdjustment saveMasterStockAdjustment(MasterStockAdjustmentDTO dto) {
         LineItemUtil.validateLines(dto.getStockAdjustmentEntries(), StockAdjustmentEntryDTO::getQuantity);
+        List<StockAdjustmentEntryDTO> lines = dto.getStockAdjustmentEntries();
+        rejectDuplicateBatches(lines);
 
         MasterStockAdjustment masterStockAdjustment = new MasterStockAdjustment();
         masterStockAdjustment.setDate(dto.getDate());
@@ -90,21 +100,20 @@ public class StockAdjustmentService {
 
         MasterStockAdjustment savedEntry = repository.save(masterStockAdjustment);
 
-        if (dto.getStockAdjustmentEntries() != null) {
-            for (StockAdjustmentEntryDTO item : dto.getStockAdjustmentEntries()) {
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        for (StockAdjustmentEntryDTO item : lines) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            ProductStock batch = productStockService.findBatch(product, item.getBatchId());
+            applyAdjustment(batch, item.getAdjustmentType(), item.getQuantity());
 
-                StockAdjustmentEntry adjustmentEntry = new StockAdjustmentEntry();
-                adjustmentEntry.setMasterStockAdjustmentId(savedEntry.getId());
-                adjustmentEntry.setAdjustmentType(item.getAdjustmentType());
-                adjustmentEntry.setQuantity(item.getQuantity());
-                adjustmentEntry.setReason(item.getReason());
-                adjustmentEntry.setProduct(product);
-                stockAdjustmentEntryRepository.save(adjustmentEntry);
-
-                applyAdjustment(product.getId(), item.getAdjustmentType(), item.getQuantity());
-            }
+            StockAdjustmentEntry adjustmentEntry = new StockAdjustmentEntry();
+            adjustmentEntry.setMasterStockAdjustmentId(savedEntry.getId());
+            adjustmentEntry.setAdjustmentType(item.getAdjustmentType());
+            adjustmentEntry.setQuantity(item.getQuantity());
+            adjustmentEntry.setReason(item.getReason());
+            adjustmentEntry.setProduct(product);
+            adjustmentEntry.setBatch(batch);
+            stockAdjustmentEntryRepository.save(adjustmentEntry);
         }
 
         return savedEntry;
@@ -113,6 +122,8 @@ public class StockAdjustmentService {
     @Transactional
     public MasterStockAdjustment updateMasterStockAdjustment(int id, MasterStockAdjustmentDTO dto) {
         LineItemUtil.validateLines(dto.getStockAdjustmentEntries(), StockAdjustmentEntryDTO::getQuantity);
+        List<StockAdjustmentEntryDTO> lines = dto.getStockAdjustmentEntries();
+        rejectDuplicateBatches(lines);
 
         MasterStockAdjustment masterStockAdjustment = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Stock Adjustment with Given Id not found"));
@@ -124,45 +135,43 @@ public class StockAdjustmentService {
         List<StockAdjustmentEntry> existingEntries = stockAdjustmentEntryRepository
                 .findByMasterStockAdjustmentId(savedEntry.getId());
         List<Integer> incomingIds = new ArrayList<>();
-        if (dto.getStockAdjustmentEntries() != null) {
-            for (StockAdjustmentEntryDTO itemDto : dto.getStockAdjustmentEntries()) {
-                incomingIds.add(itemDto.getId());
-            }
+        for (StockAdjustmentEntryDTO itemDto : lines) {
+            incomingIds.add(itemDto.getId());
         }
 
         for (StockAdjustmentEntry existing : existingEntries) {
             if (!incomingIds.contains(existing.getId())) {
-                reverseAdjustment(existing.getProduct().getId(), existing.getAdjustmentType(),
-                        existing.getQuantity());
+                reverseAdjustment(productStockService.lineBatch(existing.getBatch(), existing.getProduct()),
+                        existing.getAdjustmentType(), existing.getQuantity());
                 stockAdjustmentEntryRepository.delete(existing);
             }
         }
 
-        if (dto.getStockAdjustmentEntries() != null) {
-            for (StockAdjustmentEntryDTO item : dto.getStockAdjustmentEntries()) {
-                StockAdjustmentEntry adjustmentEntry;
-                if (item.getId() != 0) {
-                    adjustmentEntry = stockAdjustmentEntryRepository.findById(item.getId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Stock Adjustment Entry not found"));
-                    // Reverse the previous effect before applying the new one
-                    reverseAdjustment(adjustmentEntry.getProduct().getId(), adjustmentEntry.getAdjustmentType(),
-                            adjustmentEntry.getQuantity());
-                } else {
-                    adjustmentEntry = new StockAdjustmentEntry();
-                }
-
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-                adjustmentEntry.setMasterStockAdjustmentId(savedEntry.getId());
-                adjustmentEntry.setAdjustmentType(item.getAdjustmentType());
-                adjustmentEntry.setQuantity(item.getQuantity());
-                adjustmentEntry.setReason(item.getReason());
-                adjustmentEntry.setProduct(product);
-                stockAdjustmentEntryRepository.save(adjustmentEntry);
-
-                applyAdjustment(product.getId(), item.getAdjustmentType(), item.getQuantity());
+        for (StockAdjustmentEntryDTO item : lines) {
+            StockAdjustmentEntry adjustmentEntry;
+            if (item.getId() != 0) {
+                adjustmentEntry = stockAdjustmentEntryRepository.findById(item.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Stock Adjustment Entry not found"));
+                // Reverse the previous effect before applying the new one
+                reverseAdjustment(
+                        productStockService.lineBatch(adjustmentEntry.getBatch(), adjustmentEntry.getProduct()),
+                        adjustmentEntry.getAdjustmentType(), adjustmentEntry.getQuantity());
+            } else {
+                adjustmentEntry = new StockAdjustmentEntry();
             }
+
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            ProductStock batch = productStockService.findBatch(product, item.getBatchId());
+            applyAdjustment(batch, item.getAdjustmentType(), item.getQuantity());
+
+            adjustmentEntry.setMasterStockAdjustmentId(savedEntry.getId());
+            adjustmentEntry.setAdjustmentType(item.getAdjustmentType());
+            adjustmentEntry.setQuantity(item.getQuantity());
+            adjustmentEntry.setReason(item.getReason());
+            adjustmentEntry.setProduct(product);
+            adjustmentEntry.setBatch(batch);
+            stockAdjustmentEntryRepository.save(adjustmentEntry);
         }
 
         return savedEntry;
@@ -174,35 +183,49 @@ public class StockAdjustmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Stock Adjustment with Given Id not found"));
 
         for (StockAdjustmentEntry item : masterStockAdjustment.getStockAdjustmentEntries()) {
-            reverseAdjustment(item.getProduct().getId(), item.getAdjustmentType(), item.getQuantity());
+            reverseAdjustment(productStockService.lineBatch(item.getBatch(), item.getProduct()),
+                    item.getAdjustmentType(), item.getQuantity());
             stockAdjustmentEntryRepository.deleteById(item.getId());
         }
         repository.deleteById(id);
     }
 
-    private void applyAdjustment(int productId, String adjustmentType, Double quantity) {
+    private void rejectDuplicateBatches(List<StockAdjustmentEntryDTO> lines) {
+        LineItemUtil.rejectDuplicateBatches(lines,
+                line -> List.of(line.getProductId(), line.getBatchId(), String.valueOf(line.getAdjustmentType())),
+                line -> {
+                    String product = productRepository.findById(line.getProductId()).map(Product::getName)
+                            .orElse("Product " + line.getProductId());
+                    String batch = line.getBatchId() == 0 ? null
+                            : productStockRepository.findById(line.getBatchId()).map(ProductStock::getBatchNo)
+                                    .orElse("#" + line.getBatchId());
+                    return product + (batch == null ? " (default batch)" : " batch " + batch);
+                });
+    }
+
+    private void applyAdjustment(ProductStock batch, String adjustmentType, Double quantity) {
         if (quantity == null || quantity <= 0) {
             throw new BadRequestException("Adjustment quantity must be greater than zero");
         }
         if ("In".equals(adjustmentType)) {
-            changeStock(productId, quantity);
+            changeStock(batch, quantity);
         } else if ("Out".equals(adjustmentType)) {
-            changeStock(productId, -quantity);
+            changeStock(batch, -quantity);
         } else {
             throw new BadRequestException("Adjustment type must be either In or Out");
         }
     }
 
-    private void reverseAdjustment(int productId, String adjustmentType, Double quantity) {
+    private void reverseAdjustment(ProductStock batch, String adjustmentType, Double quantity) {
         if ("In".equals(adjustmentType)) {
-            changeStock(productId, -quantity);
+            changeStock(batch, -quantity);
         } else {
-            changeStock(productId, quantity);
+            changeStock(batch, quantity);
         }
     }
 
-    private void changeStock(int productId, Double delta) {
-        ProductStock productStock = productStockRepository.findByProductId(productId);
+    // A null batch is a default batch the product does not have yet
+    private void changeStock(ProductStock productStock, Double delta) {
         if (productStock == null) {
             throw new BadRequestException("Product has no stock yet. Add opening stock or a purchase first");
         }

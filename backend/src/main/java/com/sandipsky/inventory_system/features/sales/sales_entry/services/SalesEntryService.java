@@ -32,6 +32,7 @@ import com.sandipsky.inventory_system.features.accounting.journal.repositories.M
 import com.sandipsky.inventory_system.features.sales.customer.repositories.CustomerRepository;
 import com.sandipsky.inventory_system.features.product.repositories.ProductRepository;
 import com.sandipsky.inventory_system.features.product.repositories.ProductStockRepository;
+import com.sandipsky.inventory_system.features.product.services.ProductStockService;
 import com.sandipsky.inventory_system.common.util.SpecificationBuilder;
 
 import org.springframework.data.domain.*;
@@ -55,6 +56,9 @@ public class SalesEntryService {
 
     @Autowired
     private ProductStockRepository productStockRepository;
+
+    @Autowired
+    private ProductStockService productStockService;
 
     @Autowired
     private MasterJournalEntryRepository masterJournalEntryRepository;
@@ -99,6 +103,10 @@ public class SalesEntryService {
                                 salesEntryDTO.setMasterSalesEntryId(salesEntry.getMasterSalesEntryId());
                                 salesEntryDTO.setProductId(salesEntry.getProduct().getId());
                                 salesEntryDTO.setProductName(salesEntry.getProduct().getName());
+                                if (salesEntry.getBatch() != null) {
+                                    salesEntryDTO.setBatchId(productStockService.batchId(salesEntry.getBatch()));
+                                    salesEntryDTO.setBatchNo(salesEntry.getBatch().getBatchNo());
+                                }
                                 return salesEntryDTO;
                             }).toList());
         }
@@ -108,6 +116,8 @@ public class SalesEntryService {
     @Transactional
     public MasterSalesEntry saveMasterSalesEntry(MasterSalesEntryDTO masterSalesEntryDTO) {
         LineItemUtil.validateLines(masterSalesEntryDTO.getSalesEntries(), SalesEntryDTO::getQuantity);
+        List<SalesEntryDTO> lines = masterSalesEntryDTO.getSalesEntries();
+        rejectDuplicateBatches(lines);
 
         MasterSalesEntry masterSalesEntry = new MasterSalesEntry();
         masterSalesEntry.setSystemEntryNo(documentNumberService.generateSalesNumber());
@@ -115,24 +125,24 @@ public class SalesEntryService {
 
         MasterSalesEntry savedEntry = repository.save(masterSalesEntry);
 
-        if (masterSalesEntryDTO.getSalesEntries() != null) {
-            for (SalesEntryDTO item : masterSalesEntryDTO.getSalesEntries()) {
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        for (SalesEntryDTO item : lines) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-                // Saving sales Entry
-                SalesEntry salesEntry = new SalesEntry();
-                salesEntry.setQuantity(item.getQuantity());
-                salesEntry.setCostPrice(item.getCostPrice());
-                salesEntry.setSellingPrice(item.getSellingPrice());
-                salesEntry.setMrp(item.getMrp());
-                salesEntry.setMasterSalesEntryId(savedEntry.getId());
-                salesEntry.setProduct(product);
-                salesEntryRepository.save(salesEntry);
+            // Goods leave the batch picked on the line (the default batch when none is picked)
+            ProductStock batch = productStockService.findBatch(product, item.getBatchId());
+            removeFromStock(batch, item.getQuantity());
 
-                // Changing Product Stock
-                removeFromStock(product.getId(), item.getQuantity());
-            }
+            // Saving sales Entry
+            SalesEntry salesEntry = new SalesEntry();
+            salesEntry.setQuantity(item.getQuantity());
+            salesEntry.setCostPrice(item.getCostPrice());
+            salesEntry.setSellingPrice(item.getSellingPrice());
+            salesEntry.setMrp(item.getMrp());
+            salesEntry.setMasterSalesEntryId(savedEntry.getId());
+            salesEntry.setProduct(product);
+            salesEntry.setBatch(batch);
+            salesEntryRepository.save(salesEntry);
         }
 
         // Create Journal Entry
@@ -145,6 +155,8 @@ public class SalesEntryService {
     @Transactional
     public MasterSalesEntry updateMasterSalesEntry(int id, MasterSalesEntryDTO masterSalesEntryDTO) {
         LineItemUtil.validateLines(masterSalesEntryDTO.getSalesEntries(), SalesEntryDTO::getQuantity);
+        List<SalesEntryDTO> lines = masterSalesEntryDTO.getSalesEntries();
+        rejectDuplicateBatches(lines);
 
         MasterSalesEntry masterSalesEntry = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sales Entry with Given Id not found"));
@@ -159,46 +171,46 @@ public class SalesEntryService {
 
         List<SalesEntry> existingEntries = salesEntryRepository.findByMasterSalesEntryId(savedEntry.getId());
         List<Integer> incomingIds = new ArrayList<>();
-        if (masterSalesEntryDTO.getSalesEntries() != null) {
-            for (SalesEntryDTO dto : masterSalesEntryDTO.getSalesEntries()) {
-                incomingIds.add(dto.getId());
-            }
+        for (SalesEntryDTO dto : lines) {
+            incomingIds.add(dto.getId());
         }
 
         for (SalesEntry existing : existingEntries) {
             if (!incomingIds.contains(existing.getId())) {
                 // Removed sales line: the goods were not sold after all, put them back
-                addToStock(existing.getProduct().getId(), existing.getQuantity());
+                addToStock(productStockService.lineBatch(existing.getBatch(), existing.getProduct()),
+                        existing.getQuantity());
                 salesEntryRepository.delete(existing);
             }
         }
 
-        if (masterSalesEntryDTO.getSalesEntries() != null) {
-            for (SalesEntryDTO item : masterSalesEntryDTO.getSalesEntries()) {
-                SalesEntry salesEntry;
-                if (item.getId() != 0) {
-                    salesEntry = salesEntryRepository.findById(item.getId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Sales Entry not found"));
-                } else {
-                    salesEntry = new SalesEntry();
-                }
-                Double tempQuantity = salesEntry.getQuantity() != null ? salesEntry.getQuantity() : 0.0;
-
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-                salesEntry.setQuantity(item.getQuantity());
-                salesEntry.setCostPrice(item.getCostPrice());
-                salesEntry.setSellingPrice(item.getSellingPrice());
-                salesEntry.setMrp(item.getMrp());
-                salesEntry.setMasterSalesEntryId(savedEntry.getId());
-                salesEntry.setProduct(product);
-                salesEntryRepository.save(salesEntry);
-
-                // Reverse the previously sold quantity, then apply the new one
-                addToStock(product.getId(), tempQuantity);
-                removeFromStock(product.getId(), item.getQuantity());
+        for (SalesEntryDTO item : lines) {
+            SalesEntry salesEntry;
+            if (item.getId() != 0) {
+                salesEntry = salesEntryRepository.findById(item.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Sales Entry not found"));
+                // Reverse the previously sold quantity in the batch it was sold from
+                addToStock(productStockService.lineBatch(salesEntry.getBatch(), salesEntry.getProduct()),
+                        salesEntry.getQuantity());
+            } else {
+                salesEntry = new SalesEntry();
             }
+
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+            // Then sell the new quantity from the batch picked now
+            ProductStock batch = productStockService.findBatch(product, item.getBatchId());
+            removeFromStock(batch, item.getQuantity());
+
+            salesEntry.setQuantity(item.getQuantity());
+            salesEntry.setCostPrice(item.getCostPrice());
+            salesEntry.setSellingPrice(item.getSellingPrice());
+            salesEntry.setMrp(item.getMrp());
+            salesEntry.setMasterSalesEntryId(savedEntry.getId());
+            salesEntry.setProduct(product);
+            salesEntry.setBatch(batch);
+            salesEntryRepository.save(salesEntry);
         }
 
         // Re-create Journal Entry so the books reflect the updated totals
@@ -218,7 +230,7 @@ public class SalesEntryService {
         }
 
         for (SalesEntry item : masterSalesEntry.getSalesEntries()) {
-            addToStock(item.getProduct().getId(), item.getQuantity());
+            addToStock(productStockService.lineBatch(item.getBatch(), item.getProduct()), item.getQuantity());
             salesEntryRepository.deleteById(item.getId());
         }
 
@@ -266,17 +278,26 @@ public class SalesEntryService {
         }
     }
 
-    private void addToStock(int productId, Double quantity) {
-        ProductStock productStock = productStockRepository.findByProductId(productId);
-        if (productStock == null) {
-            throw new ResourceNotFoundException("Product Stock not found");
-        }
+    private void rejectDuplicateBatches(List<SalesEntryDTO> lines) {
+        LineItemUtil.rejectDuplicateBatches(lines,
+                line -> List.of(line.getProductId(), line.getBatchId()),
+                line -> {
+                    String product = productRepository.findById(line.getProductId()).map(Product::getName)
+                            .orElse("Product " + line.getProductId());
+                    String batch = line.getBatchId() == 0 ? null
+                            : productStockRepository.findById(line.getBatchId()).map(ProductStock::getBatchNo)
+                                    .orElse("#" + line.getBatchId());
+                    return product + (batch == null ? " (default batch)" : " batch " + batch);
+                });
+    }
+
+    private void addToStock(ProductStock productStock, Double quantity) {
         productStock.setQuantity(productStock.getQuantity() + quantity);
         productStockRepository.save(productStock);
     }
 
-    private void removeFromStock(int productId, Double quantity) {
-        ProductStock productStock = productStockRepository.findByProductId(productId);
+    // A null batch is a default batch the product does not have yet
+    private void removeFromStock(ProductStock productStock, Double quantity) {
         if (productStock == null) {
             throw new BadRequestException("Not enough Quantity In Stock");
         }
@@ -345,6 +366,9 @@ public class SalesEntryService {
                 journalEntryRepository.delete(existingEntry);
             }
             masterJournalEntryRepository.delete(existing);
+            // Flush now: the replacement journal is inserted immediately (identity id) and reuses
+            // the same system_entry_no, so the delete must reach the database first
+            masterJournalEntryRepository.flush();
         }
     }
 

@@ -32,6 +32,7 @@ import com.sandipsky.inventory_system.features.accounting.journal.repositories.M
 import com.sandipsky.inventory_system.features.purchase.vendor.repositories.VendorRepository;
 import com.sandipsky.inventory_system.features.product.repositories.ProductRepository;
 import com.sandipsky.inventory_system.features.product.repositories.ProductStockRepository;
+import com.sandipsky.inventory_system.features.product.services.ProductStockService;
 import com.sandipsky.inventory_system.common.util.SpecificationBuilder;
 
 import org.springframework.data.domain.*;
@@ -55,6 +56,9 @@ public class PurchaseEntryService {
 
     @Autowired
     private ProductStockRepository productStockRepository;
+
+    @Autowired
+    private ProductStockService productStockService;
 
     @Autowired
     private MasterJournalEntryRepository masterJournalEntryRepository;
@@ -119,6 +123,11 @@ public class PurchaseEntryService {
                                 pedto.setMrp(pe.getMrp());
                                 pedto.setProductId(pe.getProduct().getId());
                                 pedto.setProductName(pe.getProduct().getName());
+                                if (pe.getBatch() != null) {
+                                    pedto.setBatchId(productStockService.batchId(pe.getBatch()));
+                                    pedto.setBatchNo(pe.getBatch().getBatchNo());
+                                    pedto.setExpiryDate(pe.getBatch().getExpiryDate());
+                                }
                                 return pedto;
                             }).toList());
         }
@@ -128,6 +137,8 @@ public class PurchaseEntryService {
     @Transactional
     public MasterPurchaseEntry saveMasterPurchaseEntry(MasterPurchaseEntryDTO masterPurchaseEntryDTO) {
         LineItemUtil.validateLines(masterPurchaseEntryDTO.getPurchaseEntries(), PurchaseEntryDTO::getQuantity);
+        List<PurchaseEntryDTO> lines = masterPurchaseEntryDTO.getPurchaseEntries();
+        rejectDuplicateBatches(lines);
 
         MasterPurchaseEntry masterPurchaseEntry = new MasterPurchaseEntry();
         masterPurchaseEntry.setDate(masterPurchaseEntryDTO.getDate());
@@ -169,45 +180,27 @@ public class PurchaseEntryService {
         createJournalEntries(savedEntry);
         maintainDueInvoice(savedEntry);
 
-        if (masterPurchaseEntryDTO.getPurchaseEntries() != null) {
-            for (PurchaseEntryDTO item : masterPurchaseEntryDTO.getPurchaseEntries()) {
-                // Saving purchase Entry
-                PurchaseEntry purchaseEntry = new PurchaseEntry();
-                purchaseEntry.setQuantity(item.getQuantity());
-                purchaseEntry.setCostPrice(item.getCostPrice());
-                purchaseEntry.setSellingPrice(item.getSellingPrice());
-                purchaseEntry.setMrp(item.getMrp());
-                purchaseEntry.setMasterPurchaseEntryId(savedEntry.getId());
-                purchaseEntryRepository.save(purchaseEntry);
+        for (PurchaseEntryDTO item : lines) {
+            // Saving purchase Entry
+            PurchaseEntry purchaseEntry = new PurchaseEntry();
+            purchaseEntry.setQuantity(item.getQuantity());
+            purchaseEntry.setCostPrice(item.getCostPrice());
+            purchaseEntry.setSellingPrice(item.getSellingPrice());
+            purchaseEntry.setMrp(item.getMrp());
+            purchaseEntry.setMasterPurchaseEntryId(savedEntry.getId());
 
-                // Updating Product Master
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-                product.setCostPrice(item.getCostPrice());
-                product.setSellingPrice(item.getSellingPrice());
-                product.setMrp(item.getMrp());
-                purchaseEntry.setProduct(product);
-                productRepository.save(product);
+            // Updating Product Master
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            product.setCostPrice(item.getCostPrice());
+            product.setSellingPrice(item.getSellingPrice());
+            product.setMrp(item.getMrp());
+            purchaseEntry.setProduct(product);
+            productRepository.save(product);
 
-                // Creating Product Stock
-                ProductStock productStock = productStockRepository.findByProductId(product.getId());
-                if (productStock != null) {
-                    // Update existing stock
-                    productStock.setQuantity(productStock.getQuantity() + item.getQuantity());
-                    productStock.setCostPrice(item.getCostPrice());
-                    productStock.setSellingPrice(item.getSellingPrice());
-                    productStock.setMrp(item.getMrp());
-                } else {
-                    // Create new stock
-                    productStock = new ProductStock();
-                    productStock.setProduct(product);
-                    productStock.setQuantity(item.getQuantity());
-                    productStock.setCostPrice(item.getCostPrice());
-                    productStock.setSellingPrice(item.getSellingPrice());
-                    productStock.setMrp(item.getMrp());
-                }
-                productStockRepository.save(productStock);
-            }
+            // Goods go into the named batch (a new one if unknown), or the default batch
+            purchaseEntry.setBatch(addToBatch(product, item, null, 0.0));
+            purchaseEntryRepository.save(purchaseEntry);
         }
 
         return savedEntry;
@@ -216,6 +209,8 @@ public class PurchaseEntryService {
     @Transactional
     public MasterPurchaseEntry updateMasterPurchaseEntry(int id, MasterPurchaseEntryDTO masterPurchaseEntryDTO) {
         LineItemUtil.validateLines(masterPurchaseEntryDTO.getPurchaseEntries(), PurchaseEntryDTO::getQuantity);
+        List<PurchaseEntryDTO> lines = masterPurchaseEntryDTO.getPurchaseEntries();
+        rejectDuplicateBatches(lines);
 
         MasterPurchaseEntry masterPurchaseEntry = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Entry with Given Id not found"));
@@ -255,7 +250,7 @@ public class PurchaseEntryService {
 
         List<PurchaseEntry> existingEntries = purchaseEntryRepository.findByMasterPurchaseEntryId(savedEntry.getId());
         List<Integer> incomingIds = new ArrayList<>();
-        for (PurchaseEntryDTO dto : masterPurchaseEntryDTO.getPurchaseEntries()) {
+        for (PurchaseEntryDTO dto : lines) {
             incomingIds.add(dto.getId());
         }
 
@@ -268,69 +263,42 @@ public class PurchaseEntryService {
                 }
             }
             if (!found) {
-                ProductStock stock = productStockRepository.findByProductId(existing.getProduct().getId());
-                Double newStock = stock.getQuantity() - existing.getQuantity();
-                if (newStock >= 0) {
-                    stock.setQuantity(newStock);
-                } else {
-                    throw new BadRequestException("Product Stock is Already Used");
-                }
-                productStockRepository.save(stock);
+                removeFromBatch(productStockService.lineBatch(existing.getBatch(), existing.getProduct()),
+                        existing.getQuantity());
                 purchaseEntryRepository.delete(existing);
             }
         }
 
-        if (masterPurchaseEntryDTO.getPurchaseEntries() != null) {
-            for (PurchaseEntryDTO item : masterPurchaseEntryDTO.getPurchaseEntries()) {
-                // Saving purchase Entry
-                PurchaseEntry purchaseEntry;
-                if (item.getId() != 0) {
-                    purchaseEntry = purchaseEntryRepository.findById(item.getId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Purchase Entry not found"));
-                } else {
-                    purchaseEntry = new PurchaseEntry();
-                }
-                Double tempQuantity = purchaseEntry.getQuantity() != null ? purchaseEntry.getQuantity() : 0.0;
-                purchaseEntry.setQuantity(item.getQuantity());
-                purchaseEntry.setCostPrice(item.getCostPrice());
-                purchaseEntry.setSellingPrice(item.getSellingPrice());
-                purchaseEntry.setMrp(item.getMrp());
-                purchaseEntry.setMasterPurchaseEntryId(savedEntry.getId());
-                purchaseEntryRepository.save(purchaseEntry);
-
-                // Updating Product Master
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-                product.setCostPrice(item.getCostPrice());
-                product.setSellingPrice(item.getSellingPrice());
-                product.setMrp(item.getMrp());
-                purchaseEntry.setProduct(product);
-                productRepository.save(product);
-
-                // Creating Product Stock
-                ProductStock productStock = productStockRepository.findByProductId(product.getId());
-                if (productStock != null) {
-                    // Update existing stock
-                    Double newStock = productStock.getQuantity() - tempQuantity + item.getQuantity();
-                    if (newStock >= 0) {
-                        productStock.setQuantity(newStock);
-                    } else {
-                        throw new BadRequestException("Product Stock is Already Used");
-                    }
-                    productStock.setCostPrice(item.getCostPrice());
-                    productStock.setSellingPrice(item.getSellingPrice());
-                    productStock.setMrp(item.getMrp());
-                } else {
-                    // Create new stock
-                    productStock = new ProductStock();
-                    productStock.setProduct(product);
-                    productStock.setQuantity(item.getQuantity());
-                    productStock.setCostPrice(item.getCostPrice());
-                    productStock.setSellingPrice(item.getSellingPrice());
-                    productStock.setMrp(item.getMrp());
-                }
-                productStockRepository.save(productStock);
+        for (PurchaseEntryDTO item : lines) {
+            // Saving purchase Entry
+            PurchaseEntry purchaseEntry;
+            ProductStock previousBatch = null;
+            if (item.getId() != 0) {
+                purchaseEntry = purchaseEntryRepository.findById(item.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Purchase Entry not found"));
+                previousBatch = productStockService.lineBatch(purchaseEntry.getBatch(), purchaseEntry.getProduct());
+            } else {
+                purchaseEntry = new PurchaseEntry();
             }
+            Double tempQuantity = purchaseEntry.getQuantity() != null ? purchaseEntry.getQuantity() : 0.0;
+            purchaseEntry.setQuantity(item.getQuantity());
+            purchaseEntry.setCostPrice(item.getCostPrice());
+            purchaseEntry.setSellingPrice(item.getSellingPrice());
+            purchaseEntry.setMrp(item.getMrp());
+            purchaseEntry.setMasterPurchaseEntryId(savedEntry.getId());
+
+            // Updating Product Master
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            product.setCostPrice(item.getCostPrice());
+            product.setSellingPrice(item.getSellingPrice());
+            product.setMrp(item.getMrp());
+            purchaseEntry.setProduct(product);
+            productRepository.save(product);
+
+            // Move the line's goods from the batch they were in to the batch it names now
+            purchaseEntry.setBatch(addToBatch(product, item, previousBatch, tempQuantity));
+            purchaseEntryRepository.save(purchaseEntry);
         }
 
         // Re-create Journal Entry so the books reflect the updated totals
@@ -345,19 +313,58 @@ public class PurchaseEntryService {
         MasterPurchaseEntry masterPurchaseEntry = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Entry with Given Id not found"));
         for (PurchaseEntry item : masterPurchaseEntry.getPurchaseEntries()) {
-            ProductStock productStock = productStockRepository.findByProductId(item.getProduct().getId());
-            Double newStock = productStock.getQuantity() - item.getQuantity();
-            if (newStock >= 0) {
-                productStock.setQuantity(newStock);
-            } else {
-                throw new BadRequestException("Product Stock is Already Used");
-            }
-            productStockRepository.save(productStock);
+            removeFromBatch(productStockService.lineBatch(item.getBatch(), item.getProduct()), item.getQuantity());
             purchaseEntryRepository.deleteById(item.getId());
         }
         deleteJournalEntries(id);
         removeDueInvoice(masterPurchaseEntry.getSystemEntryNo());
         repository.deleteById(id);
+    }
+
+    private void rejectDuplicateBatches(List<PurchaseEntryDTO> lines) {
+        LineItemUtil.rejectDuplicateBatches(lines,
+                line -> List.of(line.getProductId(), LineItemUtil.batchKey(line.getBatchNo())),
+                line -> {
+                    String product = productRepository.findById(line.getProductId()).map(Product::getName)
+                            .orElse("Product " + line.getProductId());
+                    String batch = LineItemUtil.batchKey(line.getBatchNo());
+                    return product + (batch.isEmpty() ? " (default batch)" : " batch " + batch);
+                });
+    }
+
+    // Puts the line's quantity into the batch it names at the line's prices, first taking the
+    // previously purchased quantity back out of the batch it was in (the same batch when only the
+    // quantity changed, so only the difference is applied)
+    private ProductStock addToBatch(Product product, PurchaseEntryDTO item, ProductStock previousBatch,
+            Double previousQuantity) {
+        ProductStock productStock = productStockService.findOrCreateBatch(product, item.getBatchNo(),
+                item.getExpiryDate());
+        if (previousBatch != null) {
+            if (previousBatch.getId() == productStock.getId()) {
+                productStock.setQuantity(productStock.getQuantity() - previousQuantity);
+            } else {
+                removeFromBatch(previousBatch, previousQuantity);
+            }
+        }
+        Double newStock = productStock.getQuantity() + item.getQuantity();
+        if (newStock < 0) {
+            throw new BadRequestException("Product Stock is Already Used");
+        }
+        productStock.setQuantity(newStock);
+        productStock.setCostPrice(item.getCostPrice());
+        productStock.setSellingPrice(item.getSellingPrice());
+        productStock.setMrp(item.getMrp());
+        return productStockRepository.save(productStock);
+    }
+
+    // Takes a purchase line's quantity back out of its batch; fails once the goods have been sold
+    private void removeFromBatch(ProductStock batch, Double quantity) {
+        Double newStock = batch.getQuantity() - quantity;
+        if (newStock < 0) {
+            throw new BadRequestException("Product Stock is Already Used");
+        }
+        batch.setQuantity(newStock);
+        productStockRepository.save(batch);
     }
 
     // Credit purchases create a due invoice that vendor payments are later adjusted against
@@ -403,6 +410,9 @@ public class PurchaseEntryService {
                 journalEntryRepository.delete(existingEntry);
             }
             masterJournalEntryRepository.delete(existing);
+            // Flush now: the replacement journal is inserted immediately (identity id) and reuses
+            // the same system_entry_no, so the delete must reach the database first
+            masterJournalEntryRepository.flush();
         }
     }
 

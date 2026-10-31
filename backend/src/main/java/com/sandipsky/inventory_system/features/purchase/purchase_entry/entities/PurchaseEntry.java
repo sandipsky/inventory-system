@@ -1,5 +1,6 @@
 package com.sandipsky.inventory_system.features.purchase.purchase_entry.entities;
 import com.sandipsky.inventory_system.features.product.entities.Product;
+import com.sandipsky.inventory_system.features.product.entities.ProductStock;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -27,4 +28,9 @@ public class PurchaseEntry {
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
+
+    // The batch this line moved stock in
+    @ManyToOne
+    @JoinColumn(name = "batch_id")
+    private ProductStock batch;
 }

@@ -1,13 +1,11 @@
 package com.sandipsky.inventory_system.features.product.repositories;
 import com.sandipsky.inventory_system.features.product.entities.Product;
-import com.sandipsky.inventory_system.features.product.entities.ProductStock;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import com.sandipsky.inventory_system.common.dropdown.dtos.DropdownDTO;
 
@@ -26,11 +24,4 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
                         """)
         List<DropdownDTO> findFilteredDropdown(Boolean isService, Boolean isPurchasable, Boolean isSellable,
                         Boolean isActive);
-
-        @Query("""
-                            SELECT p
-                            FROM ProductStock p
-                            WHERE p.product.id = :productId
-                        """)
-        ProductStock findByProductId(@Param("productId") Integer productId);
 }

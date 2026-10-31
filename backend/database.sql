@@ -97,14 +97,18 @@ CREATE TABLE bonus_info (
   FOREIGN KEY (product_id) REFERENCES product(id)
 );
 
+-- One row per product batch; batch_no NULL is the product's default batch
 CREATE TABLE product_stock (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  batch_no TEXT,
+  expiry_date TEXT,
   quantity REAL,
   cost_price REAL,
   selling_price REAL,
   mrp REAL,
   product_id INTEGER,
-  FOREIGN KEY (product_id) REFERENCES product(id)
+  FOREIGN KEY (product_id) REFERENCES product(id),
+  UNIQUE (product_id, batch_no)
 );
 
 CREATE TABLE user (
@@ -235,8 +239,10 @@ CREATE TABLE purchase_entry (
   selling_price REAL,
   mrp REAL,
   product_id INTEGER,
+  batch_id INTEGER,
   FOREIGN KEY (master_purchase_entry_id) REFERENCES master_purchase_entry(id),
-  FOREIGN KEY (product_id) REFERENCES product(id)
+  FOREIGN KEY (product_id) REFERENCES product(id),
+  FOREIGN KEY (batch_id) REFERENCES product_stock(id)
 );
 
 CREATE TABLE master_sales_entry (
@@ -275,8 +281,10 @@ CREATE TABLE sales_entry (
   selling_price REAL,
   mrp REAL,
   product_id INTEGER,
+  batch_id INTEGER,
   FOREIGN KEY (master_sales_entry_id) REFERENCES master_sales_entry(id),
-  FOREIGN KEY (product_id) REFERENCES product(id)
+  FOREIGN KEY (product_id) REFERENCES product(id),
+  FOREIGN KEY (batch_id) REFERENCES product_stock(id)
 );
 
 CREATE TABLE master_purchase_return (
@@ -307,8 +315,10 @@ CREATE TABLE purchase_return_entry (
   selling_price REAL,
   mrp REAL,
   product_id INTEGER,
+  batch_id INTEGER,
   FOREIGN KEY (master_purchase_return_id) REFERENCES master_purchase_return(id),
-  FOREIGN KEY (product_id) REFERENCES product(id)
+  FOREIGN KEY (product_id) REFERENCES product(id),
+  FOREIGN KEY (batch_id) REFERENCES product_stock(id)
 );
 
 CREATE TABLE master_sales_return (
@@ -338,8 +348,10 @@ CREATE TABLE sales_return_entry (
   selling_price REAL,
   mrp REAL,
   product_id INTEGER,
+  batch_id INTEGER,
   FOREIGN KEY (master_sales_return_id) REFERENCES master_sales_return(id),
-  FOREIGN KEY (product_id) REFERENCES product(id)
+  FOREIGN KEY (product_id) REFERENCES product(id),
+  FOREIGN KEY (batch_id) REFERENCES product_stock(id)
 );
 
 CREATE TABLE master_payment (
@@ -393,8 +405,10 @@ CREATE TABLE stock_adjustment_entry (
   quantity REAL,
   reason TEXT,
   product_id INTEGER,
+  batch_id INTEGER,
   FOREIGN KEY (master_stock_adjustment_id) REFERENCES master_stock_adjustment(id),
-  FOREIGN KEY (product_id) REFERENCES product(id)
+  FOREIGN KEY (product_id) REFERENCES product(id),
+  FOREIGN KEY (batch_id) REFERENCES product_stock(id)
 );
 
 CREATE TABLE master_journal_entry (

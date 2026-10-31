@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import com.sandipsky.inventory_system.common.dto.ApiResponse;
+import java.util.List;
 import java.util.Map;
 import com.sandipsky.inventory_system.security.RequiresOperation;
 import com.sandipsky.inventory_system.common.util.ResponseUtil;
@@ -37,7 +38,7 @@ public class ProductController {
 
     @GetMapping("/stockInfo/{id}")
     @RequiresOperation("ViewProduct")
-    public ProductStockDTO getProductStockInfo(@PathVariable int id) {
+    public List<ProductStockDTO> getProductStockInfo(@PathVariable int id) {
         return service.getProductStockInfoById(id);
     }
 

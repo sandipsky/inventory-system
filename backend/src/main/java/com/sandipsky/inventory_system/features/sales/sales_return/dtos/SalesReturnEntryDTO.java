@@ -29,4 +29,14 @@ public class SalesReturnEntryDTO {
 
     @JsonProperty("product_name")
     private String productName;
+
+    // Typed in: an unknown batch number creates a new batch, blank means the default batch
+    @JsonProperty("batch_no")
+    private String batchNo;
+
+    @JsonProperty("expiry_date")
+    private String expiryDate;
+
+    @JsonProperty("batch_id")
+    private int batchId;
 }

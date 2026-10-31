@@ -16,6 +16,16 @@ public class ProductStockReportRowDTO {
     @JsonProperty("product_name")
     private String productName;
 
+    // 0 is the product's default batch
+    @JsonProperty("batch_id")
+    private int batchId;
+
+    @JsonProperty("batch_no")
+    private String batchNo;
+
+    @JsonProperty("expiry_date")
+    private String expiryDate;
+
     private Double quantity;
 
     @JsonProperty("cost_price")

@@ -42,6 +42,9 @@ public class ProductService {
     private ProductStockRepository productStockrepository;
 
     @Autowired
+    private ProductStockService productStockService;
+
+    @Autowired
     private CategoryRepository categoryRepository;
 
     @Autowired
@@ -118,20 +121,28 @@ public class ProductService {
         return mapToDTO(product);
     }
 
-    public ProductStockDTO getProductStockInfoById(int id) {
+    // Stock is kept per batch; the product's default batch has a null batch_no and batch_id 0
+    public List<ProductStockDTO> getProductStockInfoById(int id) {
         Product product = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        ProductStock productStock = productStockrepository.findByProductId(id);
-        ProductStockDTO productStockDTO = new ProductStockDTO();
-        if (productStock == null) {
-            // Never stocked yet (no opening stock or purchase): zero quantity at the product's own prices
+        List<ProductStock> batches = productStockrepository.findByProductId(id);
+        if (batches.isEmpty()) {
+            // Never stocked yet (no opening stock or purchase): one empty default batch at the product's own prices
+            ProductStockDTO productStockDTO = new ProductStockDTO();
             productStockDTO.setQuantity(0.0);
             productStockDTO.setCostPrice(product.getCostPrice());
             productStockDTO.setSellingPrice(product.getSellingPrice());
             productStockDTO.setMrp(product.getMrp());
-            return productStockDTO;
+            return List.of(productStockDTO);
         }
-        productStockDTO.setId(productStock.getId());
+        return batches.stream().map(this::mapStockToDTO).toList();
+    }
+
+    private ProductStockDTO mapStockToDTO(ProductStock productStock) {
+        ProductStockDTO productStockDTO = new ProductStockDTO();
+        productStockDTO.setId(productStockService.batchId(productStock));
+        productStockDTO.setBatchNo(productStock.getBatchNo());
+        productStockDTO.setExpiryDate(productStock.getExpiryDate());
         productStockDTO.setQuantity(productStock.getQuantity());
         productStockDTO.setCostPrice(productStock.getCostPrice());
         productStockDTO.setSellingPrice(productStock.getSellingPrice());
