@@ -24,3 +24,12 @@ select,
 textarea {
   font-family: inherit;
 }
+
+// Near full-screen bottom sheet (DrawerService panelClass: 'drawer-sheet'): the
+// panel height comes from the open() size, leaving a strip of the page visible
+// at the top. The drawer renders under <body>, so this cannot live in a
+// component stylesheet.
+.drawer-overlay .drawer-panel.drawer-sheet {
+  max-height: 100vh;
+  overflow: hidden;
+}

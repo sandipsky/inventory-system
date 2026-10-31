@@ -1,1 +1,31 @@
-<p>purchase-entry-form works!</p>
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <h2 class="title">{{ title() }}</h2>
+            @if (id(); as id) {
+                <span class="subtitle">#{{ id }}</span>
+            }
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <div class="body">
+        <!-- Form sections land here; every field binds [viewMode]="readonly()". -->
+    </div>
+
+    <footer class="foot">
+        @if (readonly()) {
+            <l-button variant="outlined" (click)="close()">Close</l-button>
+            <l-button variant="primary" (click)="startEdit()">
+                <l-icon name="edit" [size]="18" color="inherit" />
+                Edit
+            </l-button>
+        } @else {
+            <l-button variant="outlined" (click)="close()">Cancel</l-button>
+            <l-button variant="primary" (click)="save()">{{ mode() === 'add' ? 'Save' : 'Update' }}</l-button>
+        }
+    </footer>
+</div>

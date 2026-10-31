@@ -21,13 +21,6 @@
     margin-left: auto;
   }
 
-  .filter {
-    // Lumen's search box is 250px by default; the design is wider.
-    ::ng-deep .filter-search {
-      width: 320px;
-    }
-  }
-
   // Lumen's segmented control is a grey track with a white sliding thumb.
   // The design is a white bordered pill with the active option in accent.
   .calendar {

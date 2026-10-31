@@ -4,25 +4,9 @@ export const PURCHASE_ROUTES: Routes = [
     {
         path: 'entry',
         data: { breadcrumb: 'Purchase Entry' },
-        children: [
-            {
-                path: '',
-                loadComponent: () =>
-                    import('./purchase-entry/purchase-entry-list/purchase-entry-list').then(m => m.PurchaseEntryList),
-            },
-            {
-                path: 'new',
-                data: { breadcrumb: 'New' },
-                loadComponent: () =>
-                    import('./purchase-entry/purchase-entry-form/purchase-entry-form').then(m => m.PurchaseEntryForm),
-            },
-            {
-                path: ':id',
-                data: { breadcrumb: 'Edit' },
-                loadComponent: () =>
-                    import('./purchase-entry/purchase-entry-form/purchase-entry-form').then(m => m.PurchaseEntryForm),
-            },
-        ],
+        // Add, edit and view open the form in a bottom drawer, so there are no child routes.
+        loadComponent: () =>
+            import('./purchase-entry/purchase-entry-list/purchase-entry-list').then(m => m.PurchaseEntryList),
     },
     {
         path: 'return',

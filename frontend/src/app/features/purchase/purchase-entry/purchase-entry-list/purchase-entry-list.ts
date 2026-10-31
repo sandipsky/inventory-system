@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import {
   Button,
   CalendarSystem,
   Card,
   DateInput,
+  DrawerService,
   Filter,
   FilterChange,
   FilterColumn,
@@ -13,15 +13,19 @@ import {
   SegmentedControl,
   SegmentedOption,
 } from '@lumen-ui/angular';
+import { PurchaseFormData, PurchaseFormMode } from '../../purchase.model';
+import { PurchaseEntryForm } from '../purchase-entry-form/purchase-entry-form';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Button, Card, DateInput, Filter, FormsModule, Icon, RouterLink, SegmentedControl],
+  imports: [Button, Card, DateInput, Filter, FormsModule, Icon, SegmentedControl],
   selector: 'app-purchase-entry-list',
   styleUrl: './purchase-entry-list.scss',
   templateUrl: './purchase-entry-list.html',
 })
 export class PurchaseEntryList {
+  private readonly drawer = inject(DrawerService);
+
   // Field keys are the backend's camelCase filter names (see backend/endpoints.md).
   readonly filterColumns: FilterColumn[] = [
     { name: 'Vendor', formcontrolName: 'vendor.name', type: 'text' },
@@ -64,6 +68,22 @@ export class PurchaseEntryList {
   onFilterChange(filters: FilterChange[]) {
     this.filters.set(filters);
   }
+
+  /** Opens the purchase entry form in a near full-screen bottom drawer. `id` is required for edit and view. */
+  openForm(mode: PurchaseFormMode, id?: number) {
+    const ref = this.drawer.open<PurchaseEntryForm, PurchaseFormData, boolean>(PurchaseEntryForm, {
+      data: { mode, id },
+      position: 'bottom',
+      size: 'calc(100vh - 48px)',
+      panelClass: 'drawer-sheet',
+    });
+    ref.afterClosed().subscribe(saved => {
+      if (saved) this.reload();
+    });
+  }
+
+  /** Re-fetches the list; becomes a service call once the table lands. */
+  reload() {}
 
   print() {
     window.print();

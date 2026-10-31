@@ -1,0 +1,79 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.form-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-light);
+
+  .head,
+  .foot {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-lightest);
+  }
+
+  .head {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--separator);
+
+    .heading {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .title {
+      color: var(--text-primary);
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .subtitle {
+      color: var(--text-quaternary);
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    .close {
+      display: inline-flex;
+
+      ::ng-deep .btn {
+        border-radius: 8px;
+        color: var(--text-tertiary);
+
+        &:hover {
+          color: var(--text-primary);
+        }
+      }
+
+      l-icon {
+        display: inline-flex;
+      }
+    }
+  }
+
+  .body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px 20px;
+  }
+
+  .foot {
+    justify-content: flex-end;
+    border-top: 1px solid var(--separator);
+
+    l-icon {
+      display: inline-flex;
+    }
+  }
+}
