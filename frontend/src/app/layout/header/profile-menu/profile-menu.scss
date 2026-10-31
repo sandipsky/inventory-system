@@ -1,0 +1,111 @@
+:host {
+  display: inline-flex;
+}
+
+.trigger {
+  display: inline-flex;
+
+  ::ng-deep .btn {
+    border: 0;
+    background: transparent;
+
+    &:hover {
+      background: transparent;
+    }
+  }
+
+  l-avatar {
+    display: inline-flex;
+  }
+}
+
+.placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-dark);
+  color: var(--text-tertiary);
+
+  l-icon {
+    display: inline-flex;
+  }
+
+  &.large {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.panel {
+  min-width: 240px;
+
+  .identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--separator-light);
+
+    l-avatar {
+      display: inline-flex;
+    }
+
+    .text {
+      min-width: 0;
+
+      .name {
+        color: var(--text-primary);
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .role {
+        color: var(--text-quaternary);
+        font-size: 13px;
+        line-height: 18px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+
+    .item {
+      display: block;
+
+      ::ng-deep .btn {
+        justify-content: flex-start;
+        gap: 10px;
+        padding: 8px;
+        color: var(--text-primary);
+        font-weight: 400;
+
+        &:hover {
+          background: var(--separator);
+        }
+
+        &:focus-visible {
+          outline-offset: -2px;
+        }
+      }
+
+      l-icon {
+        display: inline-flex;
+        color: var(--text-tertiary);
+      }
+    }
+  }
+}

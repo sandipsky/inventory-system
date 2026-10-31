@@ -1,0 +1,68 @@
+<l-menu mode="right" [contentMode]="true" [closeOnItemClick]="false" [showActiveState]="false">
+  <l-button
+    class="trigger"
+    variant="ghost"
+    size="md"
+    [rounded]="true"
+    dropdown-display
+    [attr.aria-label]="unreadCount() ? unreadCount() + ' unread notifications' : 'Notifications'"
+    [lBadge]="unreadCount()"
+    lBadgeSize="sm"
+  >
+    <l-icon name="notification" [size]="20" color="inherit" />
+  </l-button>
+
+  <div class="panel" dropdown-content>
+    <div class="head">
+      <span class="title">Notifications</span>
+      @if (unreadCount()) {
+        <span class="count">{{ unreadCount() }} new</span>
+      }
+      @if (!isEmpty()) {
+        <l-button class="head-action" variant="ghost" size="sm" [disabled]="!unreadCount()" (click)="markAllRead()">
+          Mark all read
+        </l-button>
+      }
+    </div>
+
+    @if (isEmpty()) {
+      <div class="empty">
+        <span class="empty-icon" aria-hidden="true">
+          <l-icon name="notifications_alt" [size]="28" color="inherit" />
+        </span>
+        <div class="empty-title">You're all caught up</div>
+        <div class="empty-text">New notifications will show up here.</div>
+      </div>
+    } @else {
+      <ul class="list">
+        @for (notification of notifications(); track notification.id) {
+          <li>
+            <l-button
+              class="row"
+              [class.unread]="!notification.read"
+              variant="ghost"
+              width="full"
+              (click)="open(notification)"
+            >
+              <span class="row-icon" [class]="'row-icon ' + notification.tone" aria-hidden="true">
+                <l-icon [name]="notification.icon" [size]="18" color="inherit" />
+              </span>
+              <span class="row-body">
+                <span class="row-title">{{ notification.title }}</span>
+                <span class="row-message">{{ notification.message }}</span>
+                <span class="row-time">{{ timeAgo(notification.createdAt) }}</span>
+              </span>
+              @if (!notification.read) {
+                <span class="row-dot" aria-hidden="true"></span>
+              }
+            </l-button>
+          </li>
+        }
+      </ul>
+
+      <div class="foot">
+        <l-button variant="ghost" size="sm" (click)="clearAll()">Clear all</l-button>
+      </div>
+    }
+  </div>
+</l-menu>

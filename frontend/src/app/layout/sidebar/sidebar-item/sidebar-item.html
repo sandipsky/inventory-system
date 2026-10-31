@@ -1,7 +1,8 @@
 @if (hasChildren()) {
-  <button
-    type="button"
+  <div
     class="item"
+    role="button"
+    tabindex="0"
     [class.active]="groupActive() && !expanded()"
     [class.open]="expanded()"
     [class.collapsed]="collapsed()"
@@ -9,11 +10,12 @@
     [lTooltip]="collapsed() ? item().label : ''"
     lTooltipPlacement="right"
     (click)="toggle()"
+    (keydown.enter)="toggle()"
   >
     <l-icon class="icon" [name]="item().icon" [size]="20" color="inherit" />
     <span class="label">{{ item().label }}</span>
     <l-icon class="caret" name="caret" [size]="14" color="inherit" />
-  </button>
+  </div>
 
   @if (expanded()) {
     <ul class="children">

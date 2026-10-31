@@ -5,14 +5,16 @@
     } @else {
       <img class="logo" src="assets/images/logo/abis.svg" alt="ABIS" width="90" height="28">
     }
-    <button
-      type="button"
+    <div
       class="toggle"
+      role="button"
+      tabindex="0"
       [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
       (click)="toggleCollapsed()"
+      (keydown.enter)="toggleCollapsed()"
     >
       <l-icon name="caret" [size]="14" color="inherit" />
-    </button>
+    </div>
   </div>
 
   @if (!collapsed()) {
@@ -26,9 +28,9 @@
         (keydown.escape)="clearSearch()"
       >
       @if (searching()) {
-        <button type="button" class="clear" aria-label="Clear search" (click)="clearSearch()">
+        <div class="clear" role="button" tabindex="0" aria-label="Clear search" (click)="clearSearch()" (keydown.enter)="clearSearch()">
           <l-icon name="cross" [size]="14" color="inherit" />
-        </button>
+        </div>
       }
     </label>
   }

@@ -15,3 +15,10 @@ body {
   font-weight: 400;
   background: var(--bg-lightest);
 }
+// Form controls don't inherit the page font by default.
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}

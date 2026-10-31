@@ -1,0 +1,30 @@
+<div class="calculator">
+  <div class="head">
+    <span class="tile" aria-hidden="true">
+      <l-icon name="calculator" [size]="18" color="var(--text-secondary)" />
+    </span>
+    <span class="title">Calculator</span>
+    <l-button class="close" variant="outlined" size="md" [rounded]="true" aria-label="Close calculator" (click)="close()">
+      <l-icon name="cross" [size]="14" color="var(--error)" />
+    </l-button>
+  </div>
+
+  <div class="screen" aria-live="polite">
+    <div class="expression">{{ expression() }}</div>
+    <div class="result">{{ display() }}</div>
+  </div>
+
+  <div class="keys">
+    @for (row of rows; track $index) {
+      @for (key of row; track key.label) {
+        @if (key.kind === 'blank') {
+          <span class="key blank" aria-hidden="true"></span>
+        } @else {
+          <l-button class="key" [class]="key.kind" [variant]="key.variant" size="lg" [rounded]="true" (click)="key.action()">
+            {{ key.label }}
+          </l-button>
+        }
+      }
+    }
+  </div>
+</div>

@@ -1,0 +1,38 @@
+<l-menu mode="right" [contentMode]="true" [showActiveState]="false">
+  <l-button class="trigger" variant="ghost" size="md" [rounded]="true" dropdown-display [attr.aria-label]="name()">
+    @if (avatarUrl()) {
+      <l-avatar [imageUrl]="avatarUrl()" [name]="name()" size="32px" />
+    } @else {
+      <span class="placeholder" aria-hidden="true">
+        <l-icon name="user" [size]="18" color="inherit" />
+      </span>
+    }
+  </l-button>
+
+  <div class="panel" dropdown-content>
+    <div class="identity">
+      @if (avatarUrl()) {
+        <l-avatar [imageUrl]="avatarUrl()" [name]="name()" size="40px" />
+      } @else {
+        <span class="placeholder large" aria-hidden="true">
+          <l-icon name="user" [size]="22" color="inherit" />
+        </span>
+      }
+      <div class="text">
+        <div class="name">{{ name() }}</div>
+        <div class="role">{{ role() }}</div>
+      </div>
+    </div>
+
+    <div class="items">
+      <l-button class="item" variant="ghost" size="md" width="full" (click)="changePassword()">
+        <l-icon name="lock" [size]="18" color="inherit" />
+        <span>Change Password</span>
+      </l-button>
+      <l-button class="item" variant="ghost" size="md" width="full" (click)="logout()">
+        <l-icon name="logout" [size]="18" color="inherit" />
+        <span>Logout</span>
+      </l-button>
+    </div>
+  </div>
+</l-menu>

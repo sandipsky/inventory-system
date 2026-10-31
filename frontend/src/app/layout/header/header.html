@@ -1,1 +1,17 @@
-<p>header works!</p>
+<header class="header">
+    <l-breadcrumb class="breadcrumb" [title]="title()" [items]="crumbs()" />
+
+    <div class="actions">
+        <l-button class="action" variant="ghost" size="md" [rounded]="true" aria-label="Calculator" (click)="openCalculator()">
+            <l-icon name="calculator" [size]="20" color="inherit" />
+        </l-button>
+
+        <app-notification-menu />
+
+        <l-button class="action" variant="ghost" size="md" [rounded]="true" aria-label="Print">
+            <l-icon name="printer" [size]="20" color="inherit" />
+        </l-button>
+
+        <app-profile-menu class="profile" />
+    </div>
+</header>

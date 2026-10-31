@@ -19,6 +19,7 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  user-select: none;
   transition: background-color 0.15s ease, color 0.15s ease;
 
   .icon {

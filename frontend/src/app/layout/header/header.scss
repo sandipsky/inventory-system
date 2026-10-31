@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 20px;
+  background: var(--bg-lightest);
+
+  .breadcrumb {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 6px;
+
+    .action {
+      position: relative;
+      display: inline-flex;
+
+      ::ng-deep .btn {
+        border-radius: 8px;
+        color: var(--text-tertiary);
+
+        &:hover {
+          color: var(--text-primary);
+        }
+      }
+
+      l-icon {
+        display: inline-flex;
+      }
+    }
+
+    .profile {
+      margin-left: 2px;
+    }
+  }
+}
