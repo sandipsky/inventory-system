@@ -1,1 +1,26 @@
-<p>party-details-card works!</p>
+<l-card class="card" padding="md">
+    @if (title()) {
+        <h3 class="title">{{ title() }}</h3>
+    }
+
+    <dl class="details">
+        <div class="item">
+            <dt>Registration Number</dt>
+            <dd>{{ party()?.registration_number || '-' }}</dd>
+        </div>
+        <div class="item">
+            <dt>Address Information</dt>
+            <dd>{{ party()?.address || '-' }}</dd>
+        </div>
+        <div class="item">
+            <dt>Contact Information</dt>
+            <dd>{{ party()?.contact || '-' }}</dd>
+        </div>
+        @if (documentNumber(); as number) {
+            <div class="item">
+                <dt>{{ documentLabel() }}</dt>
+                <dd><l-chip variant="info" size="sm" [dot]="true">{{ number | docNo }}</l-chip></dd>
+            </div>
+        }
+    </dl>
+</l-card>

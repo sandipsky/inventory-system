@@ -1,1 +1,59 @@
-<p>invoice-summary-card works!</p>
+<l-card class="card" padding="md" [class.readonly]="readonly()">
+    <h3 class="title">Summary</h3>
+
+    <div class="fields">
+        <div class="field">
+            <span class="label">Gross Amount</span>
+            <div class="value">{{ summary().gross | amount }}</div>
+        </div>
+
+        <l-select
+            class="field"
+            label="Discount Type"
+            bindLabel="label"
+            bindValue="value"
+            [items]="discountTypes"
+            [formControl]="discountType()"
+            [viewMode]="readonly()"
+        />
+
+        <l-number-input
+            class="field"
+            [label]="percent() ? 'Discount (%)' : 'Discount Amount'"
+            [placeholder]="percent() ? 'Enter %' : 'Enter Amount'"
+            [suffix]="percent() ? '%' : ''"
+            [decimalPlaces]="2"
+            [formControl]="discount()"
+            [viewMode]="readonly()"
+        />
+
+        <div class="field">
+            <span class="label">Non Taxable Amount</span>
+            <div class="value">{{ summary().nonTaxable | amount }}</div>
+        </div>
+
+        <div class="field">
+            <span class="label">Rounding</span>
+            <div class="value">{{ summary().rounding | amount }}</div>
+        </div>
+
+        <div class="field">
+            <span class="label">Taxable Amount</span>
+            <div class="value">{{ summary().taxable | amount }}</div>
+        </div>
+
+        <div class="field">
+            <span class="label">Tax</span>
+            <div class="value">{{ summary().tax | amount }}</div>
+        </div>
+
+        <div class="field net">
+            <span class="label">Net Amount</span>
+            <div class="value">{{ summary().net | amount }}</div>
+        </div>
+    </div>
+
+    @if (percent() && summary().discountAmount) {
+        <p class="hint">Discount of {{ summary().discountAmount | amount }} on the gross amount.</p>
+    }
+</l-card>

@@ -1,0 +1,79 @@
+:host {
+  display: block;
+}
+
+.card {
+  .title {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
+  // Read-only figures: a label over a filled box, matching Lumen's field layout.
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+
+    .label {
+      color: var(--text-primary);
+      font-weight: 500;
+      line-height: 20px;
+    }
+
+    .value {
+      padding: 6px 8px;
+      border: 1px solid var(--separator);
+      border-radius: 8px;
+      background: var(--bg-light);
+      color: var(--text-secondary);
+      line-height: 20px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &.net {
+      .label {
+        font-weight: 600;
+      }
+
+      .value {
+        background: var(--bg-lightest);
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+    }
+  }
+
+  .hint {
+    margin-top: 8px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  // View mode: plain text like Lumen's view-mode fields.
+  &.readonly .field {
+    .label {
+      color: var(--text-quaternary);
+    }
+
+    .value {
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--text-primary);
+      text-align: left;
+    }
+  }
+}

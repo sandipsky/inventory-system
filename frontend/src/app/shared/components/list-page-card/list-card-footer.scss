@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  flex: 0 0 auto;
+  padding: 10px 0;
+  border-top: 1px solid var(--separator);
+}
+
+@media print {
+  :host {
+    display: none;
+  }
+}

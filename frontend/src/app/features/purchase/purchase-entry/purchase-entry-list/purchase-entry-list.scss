@@ -1,70 +1,128 @@
 :host {
   display: block;
+  height: 100%;
 }
 
-.toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+// Lumen's segmented control is a grey track with a white sliding thumb.
+// The design is a white bordered pill with the active option in accent.
+.calendar {
+  --l-seg-track-bg: var(--bg-lightest);
+  --l-seg-item-color: var(--text-primary);
+  --l-seg-item-hover-color: var(--text-primary);
+  --l-seg-item-hover-bg: var(--bg-light);
+  --l-seg-selected-color: var(--accent);
+  --l-seg-thumb-bg: transparent;
 
-  .left,
-  .right {
+  padding: 2px;
+  border: 1px solid var(--separator-dark);
+  border-radius: 8px;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
+
+  ::ng-deep .l-segmented__thumb {
+    box-shadow: none;
+  }
+
+  ::ng-deep .l-segmented__item {
+    min-height: 28px;
+    padding: 0 8px;
+    font-weight: 600;
+
+    + .l-segmented__item {
+      border-left: 1px solid var(--separator-dark);
+      border-radius: 0 6px 6px 0;
+    }
+
+    &:first-child {
+      border-radius: 6px 0 0 6px;
+    }
+  }
+}
+
+// Global form styles make date inputs full width; keep them compact here.
+.date {
+  width: 140px;
+}
+
+.action {
+  l-icon {
+    display: inline-flex;
+  }
+}
+
+.table {
+  ::ng-deep td {
+    height: 52px;
+    vertical-align: middle;
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .muted {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .discount {
+    color: var(--success);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  // The entry number reads as a link that opens the invoice.
+  .link ::ng-deep .btn {
+    padding: 0;
+    border: 0;
+    color: var(--info);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      background: transparent;
+      color: var(--accent-dark);
+    }
+  }
+
+  .more {
+    display: inline-flex;
+
+    ::ng-deep .btn {
+      padding: 4px;
+      color: var(--text-secondary);
+    }
+
+    l-icon {
+      display: inline-flex;
+    }
+  }
+
+  .menu-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
-  }
+    min-width: 120px;
 
-  .right {
-    margin-left: auto;
-  }
-
-  // Lumen's segmented control is a grey track with a white sliding thumb.
-  // The design is a white bordered pill with the active option in accent.
-  .calendar {
-    --l-seg-track-bg: var(--bg-lightest);
-    --l-seg-item-color: var(--text-primary);
-    --l-seg-item-hover-color: var(--text-primary);
-    --l-seg-item-hover-bg: var(--bg-light);
-    --l-seg-selected-color: var(--accent);
-    --l-seg-thumb-bg: transparent;
-
-    padding: 2px;
-    border: 1px solid var(--separator-dark);
-    border-radius: 8px;
-    font-family: inherit;
-    box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
-
-    ::ng-deep .l-segmented__thumb {
-      box-shadow: none;
-    }
-
-    ::ng-deep .l-segmented__item {
-      min-height: 28px;
-      padding: 0 8px;
-      font-weight: 600;
-
-      + .l-segmented__item {
-        border-left: 1px solid var(--separator-dark);
-        border-radius: 0 6px 6px 0;
-      }
-
-      &:first-child {
-        border-radius: 6px 0 0 6px;
-      }
-    }
-  }
-
-  // Global form styles make date inputs full width; keep them compact here.
-  .date {
-    width: 140px;
-  }
-
-  .action {
     l-icon {
       display: inline-flex;
+    }
+
+    &.danger {
+      color: var(--error);
+    }
+  }
+}
+
+@media print {
+  .table ::ng-deep {
+    th:last-child,
+    td:last-child {
+      display: none;
     }
   }
 }

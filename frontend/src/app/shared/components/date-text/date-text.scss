@@ -1,0 +1,19 @@
+:host {
+  display: inline-block;
+}
+
+l-date-input {
+  display: inline-block;
+  width: auto;
+
+  ::ng-deep .form-group.view-mode {
+    gap: 0;
+
+    .view-value {
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      line-height: inherit;
+    }
+  }
+}

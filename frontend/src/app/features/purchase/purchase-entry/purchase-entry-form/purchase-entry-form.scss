@@ -19,44 +19,60 @@
     background: var(--bg-lightest);
   }
 
+  l-icon {
+    display: inline-flex;
+  }
+
   .head {
     justify-content: space-between;
     border-bottom: 1px solid var(--separator);
 
     .heading {
       display: flex;
-      align-items: baseline;
-      gap: 8px;
+      align-items: center;
+      gap: 12px;
       min-width: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--separator-dark);
+      border-radius: 8px;
+      background: var(--bg-lightest);
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
     }
 
     .title {
       color: var(--text-primary);
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       line-height: 24px;
     }
 
     .subtitle {
-      color: var(--text-quaternary);
-      font-size: 14px;
-      line-height: 20px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
     }
 
-    .close {
-      display: inline-flex;
+    .tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-      ::ng-deep .btn {
-        border-radius: 8px;
-        color: var(--text-tertiary);
+    .close ::ng-deep .btn {
+      border-radius: 8px;
+      color: var(--text-tertiary);
 
-        &:hover {
-          color: var(--text-primary);
-        }
-      }
-
-      l-icon {
-        display: inline-flex;
+      &:hover {
+        color: var(--text-primary);
       }
     }
   }
@@ -68,12 +84,171 @@
     padding: 16px 20px;
   }
 
+  .sections {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  // Header row: compact pill fields with a leading icon; the placeholder is the label.
+  .fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    .field {
+      position: relative;
+      width: 180px;
+
+      &.vendor {
+        width: 220px;
+      }
+
+      &.type {
+        width: 210px;
+      }
+
+      &.date {
+        width: 170px;
+      }
+
+      .icon {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1;
+        color: var(--text-tertiary);
+        pointer-events: none;
+      }
+
+      ::ng-deep .form-control {
+        padding-left: 32px;
+      }
+
+      &.toggle {
+        display: flex;
+        align-items: center;
+        width: auto;
+        padding: 5px 10px;
+        border: 1px solid var(--separator);
+        border-radius: 8px;
+        background: var(--bg-lightest);
+
+        ::ng-deep .control-label {
+          font-weight: 400;
+        }
+      }
+    }
+
+    // View mode: label over value, no pill boxes.
+    &.view {
+      gap: 16px 40px;
+
+      .field,
+      .field.vendor,
+      .field.type,
+      .field.date {
+        width: auto;
+        min-width: 120px;
+      }
+
+      .field.toggle {
+        padding: 0;
+        border: 0;
+        background: none;
+      }
+
+      // Lumen marks required labels even when they only display a value.
+      ::ng-deep .required-asterisk {
+        display: none;
+      }
+    }
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .section-title {
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 20px;
+    }
+  }
+
+  .lines {
+    margin-bottom: 16px;
+
+    ::ng-deep td {
+      vertical-align: middle;
+    }
+
+    .amount {
+      padding: 6px 8px;
+      border: 1px solid var(--separator);
+      border-radius: 8px;
+      background: var(--bg-light);
+      color: var(--text-secondary);
+      line-height: 20px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+
+      &.view {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--text-primary);
+      }
+    }
+
+    .remove ::ng-deep .btn {
+      color: var(--text-tertiary);
+
+      &:hover {
+        color: var(--error);
+      }
+    }
+  }
+
+  // Required fields show a red border; the message under each pill or cell would break the row.
+  .fields,
+  .lines {
+    ::ng-deep .alert {
+      display: none;
+    }
+  }
+
   .foot {
     justify-content: flex-end;
     border-top: 1px solid var(--separator);
+  }
+}
 
-    l-icon {
-      display: inline-flex;
+@media print {
+  :host,
+  .form-drawer {
+    height: auto;
+  }
+
+  .form-drawer {
+    background: none;
+
+    .head .tools,
+    .section-head .add,
+    .lines .remove,
+    .foot {
+      display: none;
+    }
+
+    .body {
+      overflow: visible;
+      padding: 0;
     }
   }
 }

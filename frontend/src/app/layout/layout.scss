@@ -1,11 +1,12 @@
 .layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
 
   .sidebar {
     flex: 0 0 auto;
   }
 
+  // Header stays put; the page scrolls inside .content, so list cards can fill the height.
   .main {
     display: flex;
     flex-direction: column;
@@ -14,7 +15,26 @@
 
     .content {
       flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
       padding: 16px;
+    }
+  }
+}
+
+@media print {
+  .layout {
+    display: block;
+    height: auto;
+
+    .sidebar,
+    .header {
+      display: none;
+    }
+
+    .main .content {
+      overflow: visible;
+      padding: 0;
     }
   }
 }

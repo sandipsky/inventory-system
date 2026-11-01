@@ -33,3 +33,40 @@ textarea {
   max-height: 100vh;
   overflow: hidden;
 }
+
+// Lists and invoices are wide tables.
+@page {
+  size: landscape;
+  margin: 10mm;
+}
+
+// Printing while a drawer sheet is open prints the sheet alone, at full length.
+@media print {
+  body:has(.drawer-sheet) app-root,
+  .drawer-backdrop,
+  l-notification-container {
+    display: none;
+  }
+
+  // Let table cells wrap and tables grow instead of scrolling off the page. Lumen's
+  // encapsulated selectors outrank a global one, hence !important.
+  l-table {
+    .table-responsive {
+      overflow: visible !important;
+    }
+
+    .table td {
+      white-space: normal !important;
+    }
+  }
+
+  .drawer-overlay:has(.drawer-sheet),
+  .drawer-overlay .drawer-panel.drawer-sheet {
+    position: static;
+    height: auto !important;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    animation: none;
+  }
+}

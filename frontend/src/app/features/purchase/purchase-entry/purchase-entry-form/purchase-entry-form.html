@@ -1,31 +1,244 @@
 <div class="form-drawer">
     <header class="head">
         <div class="heading">
-            <h2 class="title">{{ title() }}</h2>
-            @if (id(); as id) {
-                <span class="subtitle">#{{ id }}</span>
-            }
+            <span class="badge" aria-hidden="true">
+                <l-icon [name]="heading().icon" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">{{ title() }}</h2>
+                <p class="subtitle">{{ heading().subtitle }}</p>
+            </div>
         </div>
 
-        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
-            <l-icon name="cross" [size]="20" color="inherit" />
-        </l-button>
+        <div class="tools">
+            @if (readonly()) {
+                <l-button class="tool" variant="outlined" (click)="print()">
+                    <l-icon name="printer" [size]="18" color="inherit" />
+                    Print
+                </l-button>
+                <l-button class="tool" variant="outlined" (click)="exportLines()">
+                    <l-icon name="download" [size]="18" color="inherit" />
+                    Export
+                </l-button>
+            }
+            <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+                <l-icon name="cross" [size]="20" color="inherit" />
+            </l-button>
+        </div>
     </header>
 
     <div class="body">
-        <!-- Form sections land here; every field binds [viewMode]="readonly()". -->
+        <l-skeleton [visible]="loading()">
+            <form class="sections" [formGroup]="form">
+                <l-card class="section" padding="md">
+                    <div class="fields" [class.view]="readonly()">
+                        <div class="field vendor">
+                            @if (!readonly()) {
+                                <l-icon class="icon" name="user" [size]="16" color="inherit" />
+                            }
+                            <l-select
+                                [label]="readonly() ? 'Vendor Name' : ''"
+                                placeholder="Vendor Name (Req.)"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="vendorOptions()"
+                                [searchable]="true"
+                                [viewMode]="readonly()"
+                                formControlName="vendor_id"
+                            />
+                        </div>
+
+                        <div class="field date">
+                            @if (!readonly()) {
+                                <l-icon class="icon" name="calendar" [size]="16" color="inherit" />
+                            }
+                            <l-date-input
+                                [label]="readonly() ? 'Posting Date' : ''"
+                                placeholder="Posting Date (Req.)"
+                                format="YYYY/MM/DD"
+                                [calendar]="calendar"
+                                [showCalendarIcon]="false"
+                                [viewMode]="readonly()"
+                                formControlName="date"
+                            />
+                        </div>
+
+                        <div class="field">
+                            @if (!readonly()) {
+                                <l-icon class="icon" name="hash" [size]="16" color="inherit" />
+                            }
+                            <l-text-input
+                                [label]="readonly() ? 'Bill Number' : ''"
+                                placeholder="Bill Number (Req.)"
+                                [viewMode]="readonly()"
+                                formControlName="bill_no"
+                            />
+                        </div>
+
+                        <div class="field date">
+                            @if (!readonly()) {
+                                <l-icon class="icon" name="calendar" [size]="16" color="inherit" />
+                            }
+                            <l-date-input
+                                [label]="readonly() ? 'Bill Date' : ''"
+                                placeholder="Bill Date (Req.)"
+                                format="YYYY/MM/DD"
+                                [calendar]="calendar"
+                                [showCalendarIcon]="false"
+                                [viewMode]="readonly()"
+                                formControlName="bill_date"
+                            />
+                        </div>
+
+                        <div class="field type">
+                            @if (!readonly()) {
+                                <l-icon class="icon" name="wallet" [size]="16" color="inherit" />
+                            }
+                            <l-select
+                                [label]="readonly() ? 'Transaction Type' : ''"
+                                placeholder="Transaction Type (Req.)"
+                                bindLabel="label"
+                                bindValue="value"
+                                [items]="transactionTypes"
+                                [viewMode]="readonly()"
+                                formControlName="transaction_type"
+                            />
+                        </div>
+
+                        <div class="field toggle">
+                            <l-toggle
+                                label="Rounding Amount"
+                                labelPosition="left"
+                                [viewMode]="readonly()"
+                                formControlName="rounded"
+                            />
+                        </div>
+                    </div>
+
+                    <app-party-details-card
+                        class="party"
+                        title="Vendor & Purchase Details"
+                        documentLabel="Purchase Number"
+                        [party]="vendor()"
+                        [documentNumber]="entryNo()"
+                    />
+                </l-card>
+
+                <l-card class="section" padding="md">
+                    <div class="section-head">
+                        <h3 class="section-title">Product Details</h3>
+                        @if (!readonly()) {
+                            <l-button class="add" variant="outlined-primary" (click)="addLine()">
+                                <l-icon name="add" [size]="16" color="inherit" />
+                                Add Product
+                            </l-button>
+                        }
+                    </div>
+
+                    <l-table
+                        class="lines"
+                        emptyText="No products added yet."
+                        [columns]="lineColumns()"
+                        [data]="lines()"
+                        [rowKey]="trackLine"
+                    >
+                        <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+                        <ng-template lTableCell="product" let-row>
+                            <l-select
+                                placeholder="Select product"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="productOptions()"
+                                [searchable]="true"
+                                [viewMode]="readonly()"
+                                [formControl]="row.controls.product_id"
+                                (change)="onProductChange(row, $event)"
+                            />
+                        </ng-template>
+
+                        <ng-template lTableCell="code" let-row>{{ productOf(row)?.code || '-' }}</ng-template>
+                        <ng-template lTableCell="unit" let-row>{{ productOf(row)?.unit_name || '-' }}</ng-template>
+
+                        <ng-template lTableCell="batch_no" let-row>
+                            <l-text-input placeholder="Batch No." [viewMode]="readonly()" [formControl]="row.controls.batch_no" />
+                        </ng-template>
+
+                        <ng-template lTableCell="expiry_date" let-row>
+                            <l-date-input
+                                placeholder="YYYY/MM/DD"
+                                format="YYYY/MM/DD"
+                                [calendar]="calendar"
+                                [showCalendarIcon]="false"
+                                [viewMode]="readonly()"
+                                [formControl]="row.controls.expiry_date"
+                            />
+                        </ng-template>
+
+                        <ng-template lTableCell="tax" let-row>{{ taxLabel(row) }}</ng-template>
+
+                        <ng-template lTableCell="quantity" let-row>
+                            <l-number-input placeholder="Quantity" [decimalPlaces]="3" [viewMode]="readonly()" [formControl]="row.controls.quantity" />
+                        </ng-template>
+
+                        <ng-template lTableCell="cost_price" let-row>
+                            <l-number-input placeholder="Rate" [decimalPlaces]="2" [viewMode]="readonly()" [formControl]="row.controls.cost_price" />
+                        </ng-template>
+
+                        <ng-template lTableCell="mrp" let-row>
+                            <l-number-input placeholder="MRP" [decimalPlaces]="2" [viewMode]="readonly()" [formControl]="row.controls.mrp" />
+                        </ng-template>
+
+                        <ng-template lTableCell="selling_price" let-row>
+                            <l-number-input placeholder="SP" [decimalPlaces]="2" [viewMode]="readonly()" [formControl]="row.controls.selling_price" />
+                        </ng-template>
+
+                        <ng-template lTableCell="amount" let-row>
+                            <div class="amount" [class.view]="readonly()">{{ amountOf(row) | amount }}</div>
+                        </ng-template>
+
+                        <ng-template lTableCell="actions" let-row>
+                            <l-button class="remove" variant="ghost" size="sm" [rounded]="true" aria-label="Remove product" (click)="removeLine(row)">
+                                <l-icon name="trash" [size]="16" color="inherit" />
+                            </l-button>
+                        </ng-template>
+                    </l-table>
+
+                    <app-invoice-summary-card
+                        class="summary"
+                        [summary]="summary()"
+                        [discountType]="form.controls.discount_type"
+                        [discount]="form.controls.discount"
+                        [readonly]="readonly()"
+                    />
+                </l-card>
+
+                <l-textarea
+                    class="remarks"
+                    label="Remarks"
+                    placeholder="Enter remarks"
+                    [rows]="2"
+                    [viewMode]="readonly()"
+                    formControlName="remarks"
+                />
+            </form>
+        </l-skeleton>
     </div>
 
     <footer class="foot">
         @if (readonly()) {
             <l-button variant="outlined" (click)="close()">Close</l-button>
-            <l-button variant="primary" (click)="startEdit()">
-                <l-icon name="edit" [size]="18" color="inherit" />
-                Edit
-            </l-button>
+            @if (canEdit()) {
+                <l-button variant="primary" [disabled]="loading()" (click)="startEdit()">
+                    <l-icon name="edit" [size]="18" color="inherit" />
+                    Edit
+                </l-button>
+            }
         } @else {
             <l-button variant="outlined" (click)="close()">Cancel</l-button>
-            <l-button variant="primary" (click)="save()">{{ mode() === 'add' ? 'Save' : 'Update' }}</l-button>
+            <l-button variant="primary" [disabled]="saving() || loading()" (click)="save()">
+                {{ saving() ? 'Saving…' : mode() === 'add' ? 'Add' : 'Update' }}
+            </l-button>
         }
     </footer>
 </div>

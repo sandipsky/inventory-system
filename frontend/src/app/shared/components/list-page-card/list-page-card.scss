@@ -1,0 +1,34 @@
+// Fills the layout's content area; the body scrolls so the toolbar and pager stay in view.
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+
+  ::ng-deep > .lui-card__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+@media print {
+  :host,
+  .card,
+  .card ::ng-deep > .lui-card__body {
+    display: block;
+    height: auto;
+  }
+
+  .card {
+    border: 0;
+  }
+}
