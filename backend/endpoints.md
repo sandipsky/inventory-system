@@ -100,7 +100,7 @@ Errors use the same shape, with `success: false`:
 | `403` | Logged in but your role lacks the permission (`"Operation not allowed"`), token expired, account locked, or account inactive |
 | `404` | Record, page or file not found (e.g. `"Category not found"`) |
 | `405` | Wrong HTTP method for that path (e.g. `PATCH` where only `PUT` exists) |
-| `409` | Duplicate (same name, username or email already exists) |
+| `409` | Duplicate (same name, username or email already exists), or deleting a record that others still use (`"This record is still used by other records, so it cannot be deleted"`) |
 | `500` | Something unexpected went wrong on the server. Check the backend logs. |
 
 > After **5 wrong passwords** an account is locked for **1 hour**.
@@ -115,7 +115,7 @@ Most `GET` list endpoints are **paged**. They accept these query parameters:
 | `pageSize` | Records per page | `25` |
 | `sort` | `field:asc` or `field:desc`; use commas for several, e.g. `sort=name:asc,id:desc` | none |
 | `fromDate`, `toDate` | Inclusive `YYYY-MM-DD` range on the record's `date`. Only lists of dated documents (purchases, sales, returns, payments, journals, stock adjustments) | none |
-| *any field name* | Filter: "contains", not case-sensitive | none |
+| *any field name* | Filter: "contains", not case-sensitive (a few fields match the whole value; their sections say so) | none |
 
 **Filters** use the record's **internal (camelCase) field names**, not the snake_case JSON names. Use a dot to filter on a linked record:
 
@@ -386,7 +386,7 @@ Permissions: `ViewProduct`, `CreateProduct`, `EditProduct`, `DeleteProduct`
 | `GET` | `/products/stockInfo/{id}` | Current stock and prices of a product, one row per batch |
 | `POST` | `/products` | Create |
 | `PUT` | `/products/{id}` | Update |
-| `DELETE` | `/products/{id}` | Delete |
+| `DELETE` | `/products/{id}` | Delete, with its batches and opening stock. Fails with **409** while document lines still use it |
 
 ### Create a product
 
@@ -501,6 +501,8 @@ Vendors (who you buy from) and customers (who you sell to) have the same fields.
 ```
 
 > Creating a vendor or customer **automatically creates their account** in the chart of accounts. That account is used for credit purchases/sales and in the ledger.
+>
+> Deleting a vendor or customer **deletes their account too**. While purchases or sales, payments or journal lines still use either of them, the delete fails with **409** `"This record is still used by other records, so it cannot be deleted"` and nothing is removed.
 
 ---
 
@@ -516,7 +518,7 @@ Permissions: `ViewAccountMaster`, `CreateAccountMaster`, `EditAccountMaster`, `D
 | `GET` | `/accountMaster/getParentAccount/{accountType}` | Accounts of that type (to pick a parent) |
 | `POST` | `/accountMaster` | Create |
 | `PUT` | `/accountMaster/{id}` | Update |
-| `DELETE` | `/accountMaster/{id}` | Delete (system accounts can't be deleted) |
+| `DELETE` | `/accountMaster/{id}` | Delete (not system, vendor or customer accounts) |
 
 ### Account types
 
@@ -576,7 +578,9 @@ Use `parent_id: 0` for no parent.
 }
 ```
 
-> Accounts with `deletable: false` (like `Cash`, `Sales`, `VAT Purchase`) are needed by the system. Deleting them fails with `"Selected Account cannot be deleted"`.
+> Accounts with `deletable: false` (like `Cash`, `Sales`, `VAT Purchase`) are needed by the system. Deleting them fails with `"Selected Account cannot be deleted"`. A vendor's or customer's account goes when they are deleted; deleting it directly fails with `"Selected Account belongs to a vendor or customer; delete them instead"`. An account used by journal lines can't be deleted (**409**).
+
+In the list, the `accountType` filter matches the **whole** type name (not case-sensitive): `GET /accountMaster?accountType=Payables` returns only `Payables`, not `Other Payables` or `Statutory Payables`. Other fields filter by "contains".
 
 ---
 

@@ -96,9 +96,13 @@ public class VendorService {
         return repository.save(existing);
     }
 
+    @Transactional
     public void deleteVendor(int id) {
-        repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vendor not found"));
-        repository.deleteById(id);
+        Vendor vendor = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vendor not found"));
+        // The vendor's account goes with it, first since it points at the vendor. If purchases,
+        // payments or journal lines still use either one, the whole delete fails
+        accountMasterRepository.findByVendorId(id).ifPresent(accountMasterRepository::delete);
+        repository.delete(vendor);
     }
 
     private VendorDTO mapToDTO(Vendor vendor) {

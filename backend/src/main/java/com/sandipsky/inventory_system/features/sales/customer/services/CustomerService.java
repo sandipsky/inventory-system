@@ -97,9 +97,14 @@ public class CustomerService {
         return repository.save(existing);
     }
 
+    @Transactional
     public void deleteCustomer(int id) {
-        repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-        repository.deleteById(id);
+        Customer customer = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+        // The customer's account goes with it, first since it points at the customer. If sales,
+        // payments or journal lines still use either one, the whole delete fails
+        accountMasterRepository.findByCustomerId(id).ifPresent(accountMasterRepository::delete);
+        repository.delete(customer);
     }
 
     private CustomerDTO mapToDTO(Customer customer) {

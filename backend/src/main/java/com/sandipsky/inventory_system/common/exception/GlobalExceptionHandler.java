@@ -4,6 +4,7 @@ import com.sandipsky.inventory_system.common.dto.ApiResponse;
 import com.sandipsky.inventory_system.common.util.ResponseUtil;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +19,30 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception ex) {
+    public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception ex, HttpServletRequest request) {
+        // SQLite refuses to delete a record that others still point to, or to point at one that
+        // doesn't exist. Depending on when it surfaces, the error comes wrapped in different types
+        if (isForeignKeyViolation(ex)) {
+            String message = "DELETE".equals(request.getMethod())
+                    ? "This record is still used by other records, so it cannot be deleted"
+                    : "This change would break a link between records";
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ResponseUtil.error(message, 409));
+        }
+
         // Spring's own request errors (unknown path or file, wrong HTTP method, missing
         // form part, ...) carry their proper status; anything else is a server error
         int status = ex instanceof ErrorResponse errorResponse ? errorResponse.getStatusCode().value() : 500;
         ApiResponse<Object> response = ResponseUtil.error(ex.getMessage(), status);
         return ResponseEntity.status(status).body(response);
+    }
+
+    private static boolean isForeignKeyViolation(Throwable ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause.getMessage() != null && cause.getMessage().contains("FOREIGN KEY constraint failed")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @ExceptionHandler(BadRequestException.class)

@@ -22,6 +22,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,7 +34,8 @@ public class AccountMasterService {
     @Autowired
     private AccountTypeRepository accountTypeRepository;
 
-    private final SpecificationBuilder<AccountMaster> specBuilder = new SpecificationBuilder<>();
+    // Types come from a fixed list, and "Payables" must not also match "Other Payables"
+    private final SpecificationBuilder<AccountMaster> specBuilder = new SpecificationBuilder<>(Set.of("accountType"));
 
     public AccountMaster saveAccountMaster(AccountMasterDTO dto) {
         if (repository.existsByAccountCode(dto.getAccountCode())) {
@@ -108,6 +110,9 @@ public class AccountMasterService {
                 .orElseThrow(() -> new ResourceNotFoundException("AccountMaster not found"));
         if (accountMaster.getDeletable() == false) {
             throw new BadRequestException("Selected Account cannot be deleted");
+        } else if (accountMaster.getVendor() != null || accountMaster.getCustomer() != null) {
+            // Saving the vendor or customer needs this account, so it only goes when they do
+            throw new BadRequestException("Selected Account belongs to a vendor or customer; delete them instead");
         } else {
             repository.deleteById(id);
         }

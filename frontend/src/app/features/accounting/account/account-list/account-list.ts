@@ -82,9 +82,8 @@ export class AccountList {
     () => new Map(this.typeGroups().flatMap(group => group.types.map(type => [type, group.heading] as const))),
   );
 
-  // Field keys are the backend's camelCase filter names. Filters match by "contains", so a
-  // type also matches longer names holding it (Payables → Other Payables), and booleans,
-  // stored as 1/0, send those.
+  // Field keys are the backend's camelCase filter names. Filters match by "contains", except
+  // the account type, which matches the whole name; booleans, stored as 1/0, send those.
   readonly filterColumns = computed<FilterColumn[]>(() => [
     { name: 'Account Code', formcontrolName: 'accountCode', type: 'text' },
     {

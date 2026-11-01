@@ -10,6 +10,7 @@ import com.sandipsky.inventory_system.features.product.entities.Product;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.sandipsky.inventory_system.common.util.QueryParamUtil;
 import java.util.Map;
@@ -166,9 +167,14 @@ public class ProductService {
         return repository.save(existing);
     }
 
+    @Transactional
     public void deleteProduct(int id) {
-        repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        repository.deleteById(id);
+        Product product = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        // Its batches (stock rows, opening stock included) go with it, first since they point at
+        // the product. If document lines still use the product or a batch, the whole delete fails
+        productStockrepository.deleteAll(productStockrepository.findByProductId(id));
+        repository.delete(product);
     }
 
     private ProductDTO mapToDTO(Product product) {
