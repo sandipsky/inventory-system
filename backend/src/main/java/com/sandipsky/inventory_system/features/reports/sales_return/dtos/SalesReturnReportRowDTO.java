@@ -37,4 +37,7 @@ public class SalesReturnReportRowDTO {
 
     @JsonProperty("grand_total")
     private double grandTotal;
+
+    @JsonProperty("is_cancelled")
+    private boolean isCancelled;
 }

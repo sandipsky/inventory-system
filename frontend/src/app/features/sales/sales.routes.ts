@@ -7,49 +7,16 @@ export const SALES_ROUTES: Routes = [
         path: 'entry',
         data: { breadcrumb: 'Sales Entry', operation: 'ViewSalesEntries' },
         canActivate: [permissionGuard],
-        children: [
-            {
-                path: '',
-                loadComponent: () =>
-                    import('./sales-entry/sales-entry-list/sales-entry-list').then(m => m.SalesEntryList),
-            },
-            {
-                path: 'new',
-                data: { breadcrumb: 'New' },
-                loadComponent: () =>
-                    import('./sales-entry/sales-entry-form/sales-entry-form').then(m => m.SalesEntryForm),
-            },
-            {
-                path: ':id',
-                data: { breadcrumb: 'Edit' },
-                loadComponent: () =>
-                    import('./sales-entry/sales-entry-form/sales-entry-form').then(m => m.SalesEntryForm),
-            },
-        ],
+        // Add and view open the form in a bottom drawer, so there are no child routes.
+        loadComponent: () =>
+            import('./sales-entry/sales-entry-list/sales-entry-list').then(m => m.SalesEntryList),
     },
     {
         path: 'return',
         data: { breadcrumb: 'Sales Return', operation: 'ViewSalesReturns' },
         canActivate: [permissionGuard],
-        children: [
-            {
-                path: '',
-                loadComponent: () =>
-                    import('./sales-return/sales-return-list/sales-return-list').then(m => m.SalesReturnList),
-            },
-            {
-                path: 'new',
-                data: { breadcrumb: 'New' },
-                loadComponent: () =>
-                    import('./sales-return/sales-return-form/sales-return-form').then(m => m.SalesReturnForm),
-            },
-            {
-                path: ':id',
-                data: { breadcrumb: 'Edit' },
-                loadComponent: () =>
-                    import('./sales-return/sales-return-form/sales-return-form').then(m => m.SalesReturnForm),
-            },
-        ],
+        loadComponent: () =>
+            import('./sales-return/sales-return-list/sales-return-list').then(m => m.SalesReturnList),
     },
     partyRoute('customers', 'customer'),
     { path: '', redirectTo: 'entry', pathMatch: 'full' },

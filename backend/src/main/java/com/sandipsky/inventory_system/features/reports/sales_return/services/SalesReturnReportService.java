@@ -56,6 +56,7 @@ public class SalesReturnReportService {
         row.setTaxableAmount(entity.getTaxableAmount());
         row.setTotalTax(entity.getTotalTax());
         row.setGrandTotal(entity.getGrandTotal());
+        row.setCancelled(entity.isCancelled());
         return row;
     }
 }

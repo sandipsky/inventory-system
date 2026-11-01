@@ -35,9 +35,10 @@ src/app/features/party/           one list + one form for vendors and customers 
 src/app/features/accounting/      accounting.routes.ts; account/ is the chart of accounts
 src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
 src/app/features/settings/        configuration/ (company settings, SETTING_FIELDS picks each one's field) and document-numbering/ (view only)
-src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator, user-avatar
-src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), breadcrumb
-src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing)
+src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator, user-avatar, cancel-dialog
+src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), product-lookup, breadcrumb
+src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing, docNoOptions), batch
+src/app/shared/styles/            document-form, document-list: the one stylesheet of each kind that all four document forms and lists use
 ```
 
 ## Frontend conventions
@@ -83,7 +84,11 @@ Query state lives in signals; a `computed` request feeds `toObservable` + `switc
 
 ### Document forms
 
-Add, edit and view open the same form in a near full-screen bottom drawer (`DrawerService`, `position: 'bottom'`, `panelClass: 'drawer-sheet'`, `disableClose: true`), with the mode and id in `DRAWER_DATA`; there are no form routes. Line items are a typed `FormArray` rendered by `l-table` cell templates. Batches: purchases and sales returns type a `batch_no`; sales and purchase returns pick a `batch_id` from `GET /products/stockInfo/{id}`. Products, vendors and customers (`PartyForm`, `data.party` picks the `PARTIES` entry), users (`UserForm`, saved as multipart with an optional picture) and roles (`RoleForm`, with the permission matrix) use this drawer too: the list's name link and View open the read-only form, whose Edit button switches to edit in place.
+Add, edit and view open the same form in a near full-screen bottom drawer (`DrawerService`, `position: 'bottom'`, `panelClass: 'drawer-sheet'`, `disableClose: true`), with the mode and id in `DRAWER_DATA`; there are no form routes. Line items are a typed `FormArray` rendered by `l-table` cell templates. Batches: purchases and sales returns type a `batch_no`; sales and purchase returns pick a `batch_id` from `GET /products/stockInfo/{id}` (labelled with `batchOptions`, prefilled with `firstBatch`: earliest expiry in stock). Each form lists `ProductLookup` in its own `providers` to fetch every line product's details and batches once. Products, vendors and customers (`PartyForm`, `data.party` picks the `PARTIES` entry), users (`UserForm`, saved as multipart with an optional picture) and roles (`RoleForm`, with the permission matrix) use this drawer too: the list's name link and View open the read-only form, whose Edit button switches to edit in place.
+
+Sales and sales returns are never edited or deleted, in the UI or the API: their forms only add and view, and a saved one is cancelled instead (`CancelDialog` asks for the reason; `POST /sales/{id}` or `/sales-return/{id}` with `cancel_remarks`, gated on `CancelSalesEntry` / `CancelSalesReturn`). A cancelled document keeps its lines and shows the reason in view mode. A sale can't be cancelled while a sales return names it. Purchase returns stay editable and deletable.
+
+Returns name the document the goods came from: purchase returns a Ref. Purchase (`ref_purchase_id`, options from `GET /dropdown/purchase/{vendorId}`), sales returns a Ref. Invoice (`ref_sales_id`, from `GET /dropdown/sales/{customerId}`, cancelled sales left out). Picking one copies its terms and every line at full quantity, replacing the current lines; picking another party clears it.
 
 ### Master data forms
 

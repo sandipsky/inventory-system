@@ -5,6 +5,8 @@ import com.sandipsky.inventory_system.features.purchase.purchase_return.reposito
 import com.sandipsky.inventory_system.features.purchase.purchase_return.repositories.MasterPurchaseReturnRepository;
 import com.sandipsky.inventory_system.features.purchase.purchase_return.dtos.MasterPurchaseReturnDTO;
 import com.sandipsky.inventory_system.features.purchase.purchase_return.entities.MasterPurchaseReturn;
+import com.sandipsky.inventory_system.features.purchase.purchase_entry.entities.MasterPurchaseEntry;
+import com.sandipsky.inventory_system.features.purchase.purchase_entry.repositories.MasterPurchaseEntryRepository;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
 
 import java.util.ArrayList;
@@ -66,6 +68,9 @@ public class PurchaseReturnService {
 
     @Autowired
     private AccountMasterRepository accountMasterRepository;
+
+    @Autowired
+    private MasterPurchaseEntryRepository purchaseEntryRepository;
 
     @Autowired
     private DocumentNumberingService documentNumberService;
@@ -268,12 +273,26 @@ public class PurchaseReturnService {
         Vendor vendor = vendorRepository.findById(dto.getVendorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vendor not found"));
         masterPurchaseReturn.setVendor(vendor);
+        masterPurchaseReturn.setRefPurchase(refPurchase(dto.getRefPurchaseId(), vendor));
 
         if (dto.getRemarks() == null || dto.getRemarks().isEmpty()) {
             masterPurchaseReturn.setRemarks("Returned Goods to " + vendor.getName());
         } else {
             masterPurchaseReturn.setRemarks(dto.getRemarks());
         }
+    }
+
+    // The purchase a return is made against must be from the same vendor
+    private MasterPurchaseEntry refPurchase(Integer refPurchaseId, Vendor vendor) {
+        if (refPurchaseId == null || refPurchaseId == 0) {
+            return null;
+        }
+        MasterPurchaseEntry purchase = purchaseEntryRepository.findById(refPurchaseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reference purchase not found"));
+        if (purchase.getVendor() == null || purchase.getVendor().getId() != vendor.getId()) {
+            throw new BadRequestException("Reference purchase belongs to another vendor");
+        }
+        return purchase;
     }
 
     private MasterPurchaseReturnDTO mapToDTO(MasterPurchaseReturn entity) {
@@ -293,6 +312,10 @@ public class PurchaseReturnService {
         dto.setGrandTotal(entity.getGrandTotal());
         dto.setDiscountType(entity.getDiscountType());
         dto.setRemarks(entity.getRemarks());
+        if (entity.getRefPurchase() != null) {
+            dto.setRefPurchaseId(entity.getRefPurchase().getId());
+            dto.setRefPurchaseNo(entity.getRefPurchase().getSystemEntryNo());
+        }
         if (entity.getVendor() != null) {
             dto.setVendorId(entity.getVendor().getId());
             dto.setVendorName(entity.getVendor().getName());

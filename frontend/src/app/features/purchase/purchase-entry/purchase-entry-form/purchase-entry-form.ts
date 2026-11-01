@@ -21,21 +21,21 @@ import {
   Textarea,
   Toggle,
 } from '@lumen-ui/angular';
-import { Observable, catchError, distinctUntilChanged, finalize, forkJoin, map, of, startWith, switchMap } from 'rxjs';
+import { Observable, catchError, distinctUntilChanged, finalize, map, of, startWith, switchMap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { InvoiceSummaryCard } from '../../../../shared/components/invoice-summary-card/invoice-summary-card';
 import { PartyDetailsCard } from '../../../../shared/components/party-details-card/party-details-card';
 import { DropdownItem } from '../../../../shared/models/api.model';
-import { DiscountType } from '../../../../shared/models/invoice.model';
+import { DiscountType, TRANSACTION_TYPES, TransactionType } from '../../../../shared/models/invoice.model';
 import { Product } from '../../../../shared/models/product.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
 import { DropdownService } from '../../../../shared/services/dropdown.service';
-import { ProductService } from '../../../../shared/services/product.service';
+import { ProductLookup } from '../../../../shared/services/product-lookup';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
 import { downloadCsv } from '../../../../shared/utils/csv';
 import { fromIsoDate, startOfToday, toIsoDate } from '../../../../shared/utils/date';
-import { calculateInvoice, round2 } from '../../../../shared/utils/invoice';
+import { calculateInvoice, lineAmount } from '../../../../shared/utils/invoice';
 import { withMissing } from '../../../../shared/utils/options';
 import {
   Purchase,
@@ -43,7 +43,6 @@ import {
   PurchaseFormMode,
   PurchaseLine,
   PurchasePayload,
-  TransactionType,
 } from '../../purchase.model';
 import { PurchaseService } from '../../purchase.service';
 
@@ -120,8 +119,9 @@ type LineForm = FormGroup<{
     Textarea,
     Toggle,
   ],
+  providers: [ProductLookup],
   selector: 'app-purchase-entry-form',
-  styleUrl: './purchase-entry-form.scss',
+  styleUrl: '../../../../shared/styles/document-form.scss',
   templateUrl: './purchase-entry-form.html',
 })
 export class PurchaseEntryForm {
@@ -132,7 +132,7 @@ export class PurchaseEntryForm {
   private readonly dropdowns = inject(DropdownService);
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly notification = inject(NotificationService);
-  private readonly productService = inject(ProductService);
+  private readonly lookup = inject(ProductLookup);
   private readonly purchaseService = inject(PurchaseService);
 
   readonly mode = signal<PurchaseFormMode>(this.data?.mode ?? 'add');
@@ -152,10 +152,7 @@ export class PurchaseEntryForm {
   /** `system_entry_no` of the loaded purchase, or a preview of the next one when adding. */
   readonly entryNo = signal<string | null>(null);
 
-  readonly transactionTypes: { label: string; value: TransactionType }[] = [
-    { label: 'Cash', value: 'Cash' },
-    { label: 'Credit', value: 'Credit' },
-  ];
+  readonly transactionTypes = TRANSACTION_TYPES;
 
   readonly form = this.fb.group({
     vendor_id: this.fb.control<number | null>(null, Validators.required),
@@ -173,9 +170,6 @@ export class PurchaseEntryForm {
   /** The line groups as a signal, so the table re-renders when a line is added or removed. */
   readonly lines = signal<LineForm[]>([]);
   readonly trackLine = (line: LineForm) => line;
-
-  /** Details of every product picked so far (code, unit, tax rate), by id. */
-  private readonly products = signal<ReadonlyMap<number, Product>>(new Map());
 
   private readonly vendorList = toSignal(this.dropdown(this.dropdowns.vendors(), 'vendors'), {
     initialValue: [],
@@ -206,7 +200,7 @@ export class PurchaseEntryForm {
 
   readonly summary = computed(() => {
     const value = this.value();
-    const products = this.products();
+    const products = this.lookup.products();
     const lines = value.lines.map(line => ({
       amount: lineAmount(line.quantity, line.cost_price),
       taxRate: (line.product_id && products.get(line.product_id)?.tax_rate) || 0,
@@ -234,7 +228,7 @@ export class PurchaseEntryForm {
 
   productOf(line: LineForm): Product | undefined {
     const id = line.controls.product_id.value;
-    return id ? this.products().get(id) : undefined;
+    return id ? this.lookup.products().get(id) : undefined;
   }
 
   taxLabel(line: LineForm): string {
@@ -262,10 +256,11 @@ export class PurchaseEntryForm {
   /** Fills the line's prices from the picked product (the product's last purchase prices). */
   onProductChange(line: LineForm, productId: unknown) {
     if (typeof productId !== 'number') return;
-    this.fetchProducts([productId])
+    this.lookup
+      .loadProducts([productId])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        const product = this.products().get(productId);
+        const product = this.lookup.products().get(productId);
         if (!product || line.controls.product_id.value !== productId) return;
         line.patchValue({
           cost_price: product.cost_price,
@@ -392,7 +387,7 @@ export class PurchaseEntryForm {
       .pipe(
         // Product details first, so tax and the totals are right as soon as the lines show.
         switchMap(purchase =>
-          this.fetchProducts(purchase.purchaseEntries.map(line => line.product_id)).pipe(map(() => purchase)),
+          this.lookup.loadProducts(purchase.purchaseEntries.map(line => line.product_id)).pipe(map(() => purchase)),
         ),
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -453,23 +448,6 @@ export class PurchaseEntryForm {
     });
   }
 
-  /** Loads the details of products not fetched yet. A product the user may not view is skipped. */
-  private fetchProducts(ids: number[]): Observable<void> {
-    const known = this.products();
-    const missing = [...new Set(ids)].filter(id => !known.has(id));
-    if (!missing.length) return of(undefined);
-
-    return forkJoin(missing.map(id => this.productService.get(id).pipe(catchError(() => of(null))))).pipe(
-      map(products => {
-        const next = new Map(this.products());
-        for (const product of products) {
-          if (product) next.set(product.id, product);
-        }
-        this.products.set(next);
-      }),
-    );
-  }
-
   private dropdown(source: Observable<DropdownItem[]>, what: string): Observable<DropdownItem[]> {
     return source.pipe(
       catchError((error: unknown) => {
@@ -478,8 +456,4 @@ export class PurchaseEntryForm {
       }),
     );
   }
-}
-
-function lineAmount(quantity: number | null, rate: number | null): number {
-  return round2((quantity ?? 0) * (rate ?? 0));
 }

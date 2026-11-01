@@ -1,0 +1,33 @@
+// Same frame as Lumen's ConfirmDialog, with room for the reason.
+.cancel-dialog {
+  width: 400px;
+  max-width: 100%;
+  padding: 20px;
+
+  .title {
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 24px;
+  }
+
+  .message {
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .reason {
+    display: block;
+    margin-bottom: 20px;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}

@@ -1,0 +1,19 @@
+<div class="cancel-dialog">
+    <h2 class="title">{{ data.title }}</h2>
+    <p class="message">{{ data.message }}</p>
+
+    <l-textarea
+        class="reason"
+        label="Reason"
+        placeholder="Why is it being cancelled?"
+        [rows]="3"
+        [formControl]="remarks"
+    />
+
+    <div class="actions">
+        <l-button variant="outlined" [disabled]="cancelling()" (click)="ref.close(false)">Close</l-button>
+        <l-button variant="danger" [disabled]="cancelling()" (click)="confirm()">
+            {{ cancelling() ? 'Cancelling…' : data.confirmText }}
+        </l-button>
+    </div>
+</div>

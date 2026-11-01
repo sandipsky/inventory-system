@@ -1,5 +1,6 @@
 package com.sandipsky.inventory_system.features.purchase.purchase_return.entities;
 import com.sandipsky.inventory_system.features.purchase.vendor.entities.Vendor;
+import com.sandipsky.inventory_system.features.purchase.purchase_entry.entities.MasterPurchaseEntry;
 
 import java.util.List;
 import jakarta.persistence.*;
@@ -61,4 +62,9 @@ public class MasterPurchaseReturn {
 	@ManyToOne
 	@JoinColumn(name = "vendor_id")
 	private Vendor vendor;
+
+	// The purchase the goods came in on, when the return names one
+	@ManyToOne
+	@JoinColumn(name = "ref_purchase_id")
+	private MasterPurchaseEntry refPurchase;
 }

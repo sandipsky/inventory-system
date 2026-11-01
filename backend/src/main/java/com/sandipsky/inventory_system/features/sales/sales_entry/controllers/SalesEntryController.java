@@ -50,13 +50,6 @@ public class SalesEntryController {
         return ResponseEntity.ok(ResponseUtil.success(res.getId(), "Sales Added successfully"));
     }
 
-    @PutMapping("/{id}")
-    @RequiresOperation("EditSalesEntry")
-    public ResponseEntity<ApiResponse<MasterSalesEntry>> updateMasterSalesEntry(@PathVariable int id, @RequestBody MasterSalesEntryDTO masterSalesEntryDTO) {
-        MasterSalesEntry res = service.updateMasterSalesEntry(id, masterSalesEntryDTO);
-        return ResponseEntity.ok(ResponseUtil.success(res.getId(), "Sales Updated successfully"));
-    }
-
     @PostMapping("/{id}")
     @RequiresOperation("CancelSalesEntry")
     public ResponseEntity<ApiResponse<MasterSalesEntry>> cancelMasterSalesEntry(@PathVariable int id, @RequestBody MasterSalesEntryDTO masterSalesEntryDTO) {

@@ -15,25 +15,9 @@ export const PURCHASE_ROUTES: Routes = [
         path: 'return',
         data: { breadcrumb: 'Purchase Return', operation: 'ViewPurchaseReturn' },
         canActivate: [permissionGuard],
-        children: [
-            {
-                path: '',
-                loadComponent: () =>
-                    import('./purchase-return/purchase-return-list/purchase-return-list').then(m => m.PurchaseReturnList),
-            },
-            {
-                path: 'new',
-                data: { breadcrumb: 'New' },
-                loadComponent: () =>
-                    import('./purchase-return/purchase-return-form/purchase-return-form').then(m => m.PurchaseReturnForm),
-            },
-            {
-                path: ':id',
-                data: { breadcrumb: 'Edit' },
-                loadComponent: () =>
-                    import('./purchase-return/purchase-return-form/purchase-return-form').then(m => m.PurchaseReturnForm),
-            },
-        ],
+        // The form opens in a bottom drawer from the list.
+        loadComponent: () =>
+            import('./purchase-return/purchase-return-list/purchase-return-list').then(m => m.PurchaseReturnList),
     },
     partyRoute('vendors', 'vendor'),
     { path: '', redirectTo: 'entry', pathMatch: 'full' },

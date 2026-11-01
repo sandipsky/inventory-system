@@ -21,6 +21,7 @@ import { fromIsoDate } from '../../utils/date';
       [format]="format()"
       [viewValue]="value() ? undefined : fallback()"
       [ngModel]="value()"
+      [ngModelOptions]="{ standalone: true }"
     />
   `,
 })

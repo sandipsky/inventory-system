@@ -51,18 +51,11 @@ public class SalesReturnController {
         return ResponseEntity.ok(ResponseUtil.success(res.getId(), "Sales Return Added successfully"));
     }
 
-    @PutMapping("/{id}")
-    @RequiresOperation("EditSalesReturn")
-    public ResponseEntity<ApiResponse<MasterSalesReturn>> updateMasterSalesReturn(@PathVariable int id,
+    @PostMapping("/{id}")
+    @RequiresOperation("CancelSalesReturn")
+    public ResponseEntity<ApiResponse<MasterSalesReturn>> cancelMasterSalesReturn(@PathVariable int id,
             @RequestBody MasterSalesReturnDTO masterSalesReturnDTO) {
-        MasterSalesReturn res = service.updateMasterSalesReturn(id, masterSalesReturnDTO);
-        return ResponseEntity.ok(ResponseUtil.success(res.getId(), "Sales Return Updated successfully"));
-    }
-
-    @DeleteMapping("/{id}")
-    @RequiresOperation("DeleteSalesReturn")
-    public ResponseEntity<ApiResponse<MasterSalesReturn>> deleteMasterSalesReturn(@PathVariable int id) {
-        service.deleteMasterSalesReturn(id);
-        return ResponseEntity.ok(ResponseUtil.success(id, "Sales Return Deleted successfully"));
+        service.cancelMasterSalesReturn(id, masterSalesReturnDTO);
+        return ResponseEntity.ok(ResponseUtil.success(id, "Sales Return Cancelled successfully"));
     }
 }

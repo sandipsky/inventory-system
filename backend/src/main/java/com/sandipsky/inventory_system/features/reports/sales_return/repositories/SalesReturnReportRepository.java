@@ -23,7 +23,8 @@ public interface SalesReturnReportRepository extends JpaRepository<MasterSalesRe
                 SELECT new com.sandipsky.inventory_system.features.reports.sales_return.dtos.SalesReturnByCustomerReportDTO(
                     c.id, c.name, COUNT(m), SUM(m.subTotal), SUM(m.totalTax), SUM(m.grandTotal))
                 FROM MasterSalesReturn m JOIN m.customer c
-                WHERE (:fromDate IS NULL OR m.date >= :fromDate)
+                WHERE m.isCancelled = false
+                  AND (:fromDate IS NULL OR m.date >= :fromDate)
                   AND (:toDate IS NULL OR m.date <= :toDate)
                 GROUP BY c.id, c.name
                 ORDER BY c.name
@@ -36,6 +37,7 @@ public interface SalesReturnReportRepository extends JpaRepository<MasterSalesRe
                     p.id, p.name, SUM(re.quantity), SUM(re.quantity * re.sellingPrice))
                 FROM SalesReturnEntry re JOIN re.product p, MasterSalesReturn m
                 WHERE re.masterSalesReturnId = m.id
+                  AND m.isCancelled = false
                   AND (:fromDate IS NULL OR m.date >= :fromDate)
                   AND (:toDate IS NULL OR m.date <= :toDate)
                 GROUP BY p.id, p.name
@@ -50,6 +52,7 @@ public interface SalesReturnReportRepository extends JpaRepository<MasterSalesRe
                     SUM(re.quantity), SUM(re.quantity * re.sellingPrice))
                 FROM SalesReturnEntry re JOIN re.product p LEFT JOIN re.batch b, MasterSalesReturn m
                 WHERE re.masterSalesReturnId = m.id
+                  AND m.isCancelled = false
                   AND (:fromDate IS NULL OR m.date >= :fromDate)
                   AND (:toDate IS NULL OR m.date <= :toDate)
                 GROUP BY p.id, p.name, b.id, b.batchNo, b.expiryDate

@@ -3,7 +3,7 @@ import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, ListParams, Page } from '../models/api.model';
-import { ProductDetail, ProductPayload } from '../models/product.model';
+import { BatchStock, ProductDetail, ProductPayload } from '../models/product.model';
 
 /**
  * Products (`/products`): the product master, and the lookups the purchase, sales and
@@ -21,6 +21,11 @@ export class ProductService {
 
   get(id: number): Observable<ProductDetail> {
     return this.http.get<ProductDetail>(`${this.baseUrl}/${id}`);
+  }
+
+  /** The product's batches and their stock. A product never stocked has one empty default batch. */
+  stockInfo(id: number): Observable<BatchStock[]> {
+    return this.http.get<BatchStock[]>(`${this.baseUrl}/stockInfo/${id}`);
   }
 
   create(product: ProductPayload): Observable<ApiResponse> {

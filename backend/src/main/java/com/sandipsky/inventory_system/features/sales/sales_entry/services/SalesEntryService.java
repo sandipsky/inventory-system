@@ -5,9 +5,9 @@ import com.sandipsky.inventory_system.features.sales.sales_entry.repositories.Sa
 import com.sandipsky.inventory_system.features.sales.sales_entry.repositories.MasterSalesEntryRepository;
 import com.sandipsky.inventory_system.features.sales.sales_entry.dtos.MasterSalesEntryDTO;
 import com.sandipsky.inventory_system.features.sales.sales_entry.entities.MasterSalesEntry;
+import com.sandipsky.inventory_system.features.sales.sales_return.repositories.MasterSalesReturnRepository;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +71,9 @@ public class SalesEntryService {
 
     @Autowired
     private AmountDueInvoiceRepository amountDueInvoiceRepository;
+
+    @Autowired
+    private MasterSalesReturnRepository salesReturnRepository;
 
     @Autowired
     private DocumentNumberingService documentNumberService;
@@ -153,74 +156,6 @@ public class SalesEntryService {
     }
 
     @Transactional
-    public MasterSalesEntry updateMasterSalesEntry(int id, MasterSalesEntryDTO masterSalesEntryDTO) {
-        LineItemUtil.validateLines(masterSalesEntryDTO.getSalesEntries(), SalesEntryDTO::getQuantity);
-        List<SalesEntryDTO> lines = masterSalesEntryDTO.getSalesEntries();
-        rejectDuplicateBatches(lines);
-
-        MasterSalesEntry masterSalesEntry = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Sales Entry with Given Id not found"));
-
-        if (masterSalesEntry.isCancelled()) {
-            throw new BadRequestException("Cancelled Sales Entry cannot be updated");
-        }
-
-        mapDtoToEntity(masterSalesEntryDTO, masterSalesEntry);
-
-        MasterSalesEntry savedEntry = repository.save(masterSalesEntry);
-
-        List<SalesEntry> existingEntries = salesEntryRepository.findByMasterSalesEntryId(savedEntry.getId());
-        List<Integer> incomingIds = new ArrayList<>();
-        for (SalesEntryDTO dto : lines) {
-            incomingIds.add(dto.getId());
-        }
-
-        for (SalesEntry existing : existingEntries) {
-            if (!incomingIds.contains(existing.getId())) {
-                // Removed sales line: the goods were not sold after all, put them back
-                addToStock(productStockService.lineBatch(existing.getBatch(), existing.getProduct()),
-                        existing.getQuantity());
-                salesEntryRepository.delete(existing);
-            }
-        }
-
-        for (SalesEntryDTO item : lines) {
-            SalesEntry salesEntry;
-            if (item.getId() != 0) {
-                salesEntry = salesEntryRepository.findById(item.getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Sales Entry not found"));
-                // Reverse the previously sold quantity in the batch it was sold from
-                addToStock(productStockService.lineBatch(salesEntry.getBatch(), salesEntry.getProduct()),
-                        salesEntry.getQuantity());
-            } else {
-                salesEntry = new SalesEntry();
-            }
-
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-            // Then sell the new quantity from the batch picked now
-            ProductStock batch = productStockService.findBatch(product, item.getBatchId());
-            removeFromStock(batch, item.getQuantity());
-
-            salesEntry.setQuantity(item.getQuantity());
-            salesEntry.setCostPrice(item.getCostPrice());
-            salesEntry.setSellingPrice(item.getSellingPrice());
-            salesEntry.setMrp(item.getMrp());
-            salesEntry.setMasterSalesEntryId(savedEntry.getId());
-            salesEntry.setProduct(product);
-            salesEntry.setBatch(batch);
-            salesEntryRepository.save(salesEntry);
-        }
-
-        // Re-create Journal Entry so the books reflect the updated totals
-        createJournalEntries(savedEntry);
-        maintainDueInvoice(savedEntry);
-
-        return savedEntry;
-    }
-
-    @Transactional
     public void cancelMasterSalesEntry(int id, MasterSalesEntryDTO masterSalesEntryDTO) {
         MasterSalesEntry masterSalesEntry = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sales Entry with Given Id not found"));
@@ -229,9 +164,13 @@ public class SalesEntryService {
             throw new BadRequestException("Sales Entry Already Cancelled");
         }
 
+        if (salesReturnRepository.existsByRefSalesIdAndIsCancelledFalse(id)) {
+            throw new BadRequestException("Cancel the sales returns made against this invoice first");
+        }
+
+        // The lines stay so the cancelled invoice still shows what it sold
         for (SalesEntry item : masterSalesEntry.getSalesEntries()) {
             addToStock(productStockService.lineBatch(item.getBatch(), item.getProduct()), item.getQuantity());
-            salesEntryRepository.deleteById(item.getId());
         }
 
         // Cancelled sale never happened as far as the books are concerned

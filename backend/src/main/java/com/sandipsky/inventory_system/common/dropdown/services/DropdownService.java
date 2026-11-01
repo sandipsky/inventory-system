@@ -14,6 +14,8 @@ import com.sandipsky.inventory_system.features.masters.taxtype.repositories.TaxT
 import com.sandipsky.inventory_system.features.masters.unit.repositories.UnitRepository;
 import com.sandipsky.inventory_system.features.user.repositories.UserRepository;
 import com.sandipsky.inventory_system.features.purchase.vendor.repositories.VendorRepository;
+import com.sandipsky.inventory_system.features.purchase.purchase_entry.repositories.MasterPurchaseEntryRepository;
+import com.sandipsky.inventory_system.features.sales.sales_entry.repositories.MasterSalesEntryRepository;
 
 import java.util.List;
 
@@ -49,6 +51,12 @@ public class DropdownService {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private MasterPurchaseEntryRepository purchaseEntryRepository;
+
+    @Autowired
+    private MasterSalesEntryRepository salesEntryRepository;
 
     public List<DropdownDTO> getProductsDropdown(String serviceType, String type, String status) {
         Boolean isService = switch (serviceType.toLowerCase()) {
@@ -117,4 +125,13 @@ public class DropdownService {
         return roleRepository.findFilteredDropdown(isActive);
     }
 
+    // Documents a return can be made against: the vendor's purchases, newest first
+    public List<DropdownDTO> getPurchaseDropdown(int vendorId) {
+        return purchaseEntryRepository.findDropdownByVendor(vendorId);
+    }
+
+    // The customer's sales that are not cancelled, newest first
+    public List<DropdownDTO> getSalesDropdown(int customerId) {
+        return salesEntryRepository.findDropdownByCustomer(customerId);
+    }
 }

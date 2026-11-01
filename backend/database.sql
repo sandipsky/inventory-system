@@ -304,7 +304,9 @@ CREATE TABLE master_purchase_return (
   discount_type TEXT,
   remarks TEXT,
   vendor_id INTEGER,
-  FOREIGN KEY (vendor_id) REFERENCES vendor(id)
+  ref_purchase_id INTEGER,
+  FOREIGN KEY (vendor_id) REFERENCES vendor(id),
+  FOREIGN KEY (ref_purchase_id) REFERENCES master_purchase_entry(id)
 );
 
 CREATE TABLE purchase_return_entry (
@@ -336,8 +338,12 @@ CREATE TABLE master_sales_return (
   grand_total REAL NOT NULL DEFAULT 0,
   discount_type TEXT,
   remarks TEXT,
+  is_cancelled INTEGER DEFAULT 0,
+  cancel_remarks TEXT,
   customer_id INTEGER,
-  FOREIGN KEY (customer_id) REFERENCES customer(id)
+  ref_sales_id INTEGER,
+  FOREIGN KEY (customer_id) REFERENCES customer(id),
+  FOREIGN KEY (ref_sales_id) REFERENCES master_sales_entry(id)
 );
 
 CREATE TABLE sales_return_entry (
@@ -722,13 +728,11 @@ INSERT INTO operation (name, module, master_module) VALUES
 
 ('CreateSalesEntry', 'SalesEntry', 'Sales'),
 ('ViewSalesEntries', 'SalesEntry', 'Sales'),
-('EditSalesEntry', 'SalesEntry', 'Sales'),
 ('CancelSalesEntry', 'SalesEntry', 'Sales'),
 
 ('CreateSalesReturn', 'SalesReturn', 'Sales'),
 ('ViewSalesReturns', 'SalesReturn', 'Sales'),
-('EditSalesReturn', 'SalesReturn', 'Sales'),
-('DeleteSalesReturn', 'SalesReturn', 'Sales'),
+('CancelSalesReturn', 'SalesReturn', 'Sales'),
 
 ('CreateStockAdjustment', 'StockAdjustment', 'Inventory'),
 ('ViewStockAdjustment', 'StockAdjustment', 'Inventory'),

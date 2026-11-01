@@ -1,3 +1,4 @@
+// Drawer form of the purchase, purchase return, sales and sales return documents.
 :host {
   display: block;
   height: 100%;
@@ -90,6 +91,28 @@
     gap: 16px;
   }
 
+  // A cancelled sale or return, with the reason it was cancelled.
+  .cancelled {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    background: var(--error-bg);
+    color: var(--error);
+    line-height: 20px;
+
+    l-icon {
+      margin-top: 2px;
+    }
+
+    .reason {
+      color: var(--text-primary);
+    }
+  }
+
   // Header row: compact pill fields with a leading icon; the placeholder is the label.
   .fields {
     display: flex;
@@ -102,8 +125,12 @@
       position: relative;
       width: 180px;
 
-      &.vendor {
+      &.party {
         width: 220px;
+      }
+
+      &.ref {
+        width: 200px;
       }
 
       &.type {
@@ -147,7 +174,8 @@
       gap: 16px 40px;
 
       .field,
-      .field.vendor,
+      .field.party,
+      .field.ref,
       .field.type,
       .field.date {
         width: auto;

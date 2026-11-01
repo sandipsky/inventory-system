@@ -287,6 +287,8 @@ The last part of each path is the **status**. Use `active` for active records on
 | `GET /dropdown/roles/{status}` | Roles |
 | `GET /dropdown/products/{serviceType}/{type}/{status}` | Products. `serviceType` = `inventory` / `service` / `all`; `type` = `purchasable` / `sellable` / `all` |
 | `GET /dropdown/accountMaster/{type}/{partyType}/{status}` | Accounts. `type` = `party` / `nonparty` / `all`; `partyType` = `vendor` / `customer` / `all` |
+| `GET /dropdown/purchase/{vendorId}` | That vendor's purchases, newest first. `name` is the purchase number (`\|PE-000001`). For the reference purchase of a purchase return |
+| `GET /dropdown/sales/{customerId}` | That customer's sales that are **not cancelled**, newest first. `name` is the invoice number (`\|SI-000001`). For the reference invoice of a sales return |
 
 Examples:
 
@@ -294,6 +296,7 @@ Examples:
 GET /dropdown/units/active
 GET /dropdown/products/inventory/sellable/active      → products you can sell
 GET /dropdown/accountMaster/party/vendor/active       → vendor accounts
+GET /dropdown/sales/6                                 → invoices customer 6 can return goods against
 ```
 
 Response:
@@ -779,8 +782,9 @@ Permissions: `ViewPurchaseEntry`, `CreatePurchaseEntry` (also needed for `genera
 
 Sending goods back to a vendor. **Stock goes down.** The body is the same as a purchase, except:
 - there's no `bill_date`,
-- the items go in **`purchaseReturnEntries`**, and
-- each line **picks a batch** with `batch_id` (from the product's stock info) instead of typing a `batch_no`. Leave it out or send `0` for the default batch.
+- the items go in **`purchaseReturnEntries`**,
+- each line **picks a batch** with `batch_id` (from the product's stock info) instead of typing a `batch_no`. Leave it out or send `0` for the default batch, and
+- `ref_purchase_id` optionally names the purchase the goods came in on (pick it from `GET /dropdown/purchase/{vendorId}`). It must be the **same vendor's** purchase, or you get `"Reference purchase belongs to another vendor"`. Leave it out (or `null`) for none.
 
 Permissions: `ViewPurchaseReturn`, `CreatePurchaseReturn` (also needed for `generateNumber`), `EditPurchaseReturn`, `DeletePurchaseReturn`
 
@@ -811,13 +815,16 @@ Permissions: `ViewPurchaseReturn`, `CreatePurchaseReturn` (also needed for `gene
   "rounding": 0,
   "grand_total": 226,
   "remarks": "Expired items",
+  "ref_purchase_id": 1,
   "purchaseReturnEntries": [
     { "product_id": 31, "batch_id": 1, "quantity": 5, "cost_price": 40, "selling_price": 50, "mrp": 55 }
   ]
 }
 ```
 
-Returning more than the batch holds fails with `"Not enough Quantity In Stock"`; a `batch_id` of another product fails with `"Batch does not belong to …"`. On read each line also shows the batch's `batch_no`.
+Returning more than the batch holds fails with `"Not enough Quantity In Stock"`; a `batch_id` of another product fails with `"Batch does not belong to …"`. On read each line also shows the batch's `batch_no`, and the return shows `ref_purchase_id` with the purchase's number in `ref_purchase_no` (both `null` when it has none).
+
+A purchase that a purchase return names can't be deleted (409) until that return is deleted or points elsewhere.
 
 ---
 
@@ -836,7 +843,9 @@ Sales work like purchases, but in reverse:
 
 ### Sales entry
 
-Permissions: `ViewSalesEntries`, `CreateSalesEntry` (also needed for `generateNumber`), `EditSalesEntry`, `CancelSalesEntry`
+Permissions: `ViewSalesEntries`, `CreateSalesEntry` (also needed for `generateNumber`), `CancelSalesEntry`
+
+A saved sale is **never edited or deleted**, only cancelled.
 
 | Method | Path | What it does |
 |---|---|---|
@@ -844,8 +853,7 @@ Permissions: `ViewSalesEntries`, `CreateSalesEntry` (also needed for `generateNu
 | `GET` | `/sales` | Paged list (e.g. `?customer.name=ram`) |
 | `GET` | `/sales/{id}` | One sale with its items |
 | `POST` | `/sales` | Create |
-| `PUT` | `/sales/{id}` | Update |
-| `POST` | `/sales/{id}` | **Cancel** the sale (there is no delete) |
+| `POST` | `/sales/{id}` | **Cancel** the sale (there is no update or delete) |
 
 `POST /sales`
 
@@ -902,8 +910,6 @@ Each line **picks the batch it sells from** with `batch_id`, taken from `GET /pr
 
 If the chosen batch doesn't hold enough, you get `"Not enough Quantity In Stock"`. A `batch_id` that belongs to another product fails with `"Batch does not belong to …"`.
 
-**Updating** works like purchases: lines with an `id` are kept, lines without an `id` are added, and missing lines are removed.
-
 ### Cancel a sale
 
 Sales are never deleted, only cancelled. `POST /sales/2`
@@ -914,16 +920,20 @@ Sales are never deleted, only cancelled. `POST /sales/2`
 
 Cancelling:
 - puts the stock back,
-- removes the journal, and
-- marks the sale `"cancelled": true`.
+- removes the journal (and, for a credit sale, the amount due), and
+- marks the sale `"cancelled": true` with the given `cancel_remarks`. Its lines **stay**, so `GET /sales/{id}` still shows what it sold.
 
-A cancelled sale can't be edited or cancelled again. A credit sale that already has payments against it can't be cancelled.
+A cancelled sale can't be cancelled again. A credit sale that already has payments against it can't be cancelled, and neither can a sale that a sales return names until that return is cancelled (`"Cancel the sales returns made against this invoice first"`).
 
 ### Sales return
 
-A customer brings goods back. **Stock goes up.** Same body as a sale, but the items go in **`salesReturnEntries`**, and like a purchase each line **types in** a `batch_no` (optional, with an optional `expiry_date`) instead of picking a `batch_id`: a known number puts the goods back into that batch, an unknown one **creates a new batch** priced from the line, and a blank one uses the default batch.
+A customer brings goods back. **Stock goes up.** Same body as a sale, but:
+- the items go in **`salesReturnEntries`**, and like a purchase each line **types in** a `batch_no` (optional, with an optional `expiry_date`) instead of picking a `batch_id`: a known number puts the goods back into that batch, an unknown one **creates a new batch** priced from the line, and a blank one uses the default batch;
+- `ref_sales_id` optionally names the invoice the goods were sold on (pick it from `GET /dropdown/sales/{customerId}`). It must be the **same customer's** invoice and **not cancelled** (`"Reference invoice belongs to another customer"` / `"Reference invoice is cancelled"`). Leave it out (or `null`) for none.
 
-Permissions: `ViewSalesReturns`, `CreateSalesReturn` (also needed for `generateNumber`), `EditSalesReturn`, `DeleteSalesReturn`
+Like a sale, a saved sales return is **never edited or deleted**, only cancelled.
+
+Permissions: `ViewSalesReturns`, `CreateSalesReturn` (also needed for `generateNumber`), `CancelSalesReturn`
 
 | Method | Path |
 |---|---|
@@ -931,8 +941,7 @@ Permissions: `ViewSalesReturns`, `CreateSalesReturn` (also needed for `generateN
 | `GET` | `/sales-return` |
 | `GET` | `/sales-return/{id}` |
 | `POST` | `/sales-return` |
-| `PUT` | `/sales-return/{id}` |
-| `DELETE` | `/sales-return/{id}` |
+| `POST` | `/sales-return/{id}` (cancel) |
 
 `POST /sales-return`
 
@@ -951,11 +960,24 @@ Permissions: `ViewSalesReturns`, `CreateSalesReturn` (also needed for `generateN
   "rounding": 0,
   "grand_total": 113,
   "remarks": "2 damaged bottles",
+  "ref_sales_id": 1,
   "salesReturnEntries": [
     { "product_id": 31, "batch_no": "B1", "quantity": 2, "cost_price": 40, "selling_price": 50, "mrp": 55 }
   ]
 }
 ```
+
+On read (`GET /sales-return/{id}`) a return also shows `ref_sales_id` with the invoice's number in `ref_sales_no` (both `null` when it has none), `"cancelled"` and `cancel_remarks`, and each line its `batch_id`, `batch_no` and the batch's `expiry_date`.
+
+### Cancel a sales return
+
+`POST /sales-return/2`
+
+```json
+{ "cancel_remarks": "Entered against the wrong customer" }
+```
+
+Cancelling takes the returned goods back out of stock (batch by batch), removes the journal and marks the return `"cancelled": true`. Its lines stay. It fails with `"Product Stock is Already Used"` when the returned goods have been sold since, and with `"Sales Return Already Cancelled"` the second time. Reports leave cancelled returns out of their totals.
 
 ---
 
@@ -1210,7 +1232,7 @@ Leave out the dates to get everything.
 ]
 ```
 
-The return reports (`/reports/purchase-return/…`, `/reports/sales-return/…`) have exactly the same shapes as their purchase and sales counterparts; the sales-return register has no `is_cancelled` (returns are deleted, not cancelled).
+The return reports (`/reports/purchase-return/…`, `/reports/sales-return/…`) have exactly the same shapes as their purchase and sales counterparts. Like sales, the sales-return register lists cancelled returns too (`is_cancelled`), and the totals leave them out.
 
 `GET /reports/inventory/stock`
 

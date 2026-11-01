@@ -69,4 +69,14 @@ public class DropdownController {
     public List<DropdownDTO> getRolesDropdown(@PathVariable String status) {
         return service.getRoleDropdown(status);
     }
+
+    @GetMapping("/purchase/{vendorId}")
+    public List<DropdownDTO> getPurchaseDropdown(@PathVariable int vendorId) {
+        return service.getPurchaseDropdown(vendorId);
+    }
+
+    @GetMapping("/sales/{customerId}")
+    public List<DropdownDTO> getSalesDropdown(@PathVariable int customerId) {
+        return service.getSalesDropdown(customerId);
+    }
 }

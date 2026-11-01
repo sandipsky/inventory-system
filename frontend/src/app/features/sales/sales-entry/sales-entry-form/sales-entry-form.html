@@ -1,1 +1,226 @@
-<p>sales-entry-form works!</p>
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon [name]="heading.icon" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">{{ heading.title }}</h2>
+                <p class="subtitle">{{ heading.subtitle }}</p>
+            </div>
+        </div>
+
+        <div class="tools">
+            @if (readonly) {
+                <l-button class="tool" variant="outlined" (click)="print()">
+                    <l-icon name="printer" [size]="18" color="inherit" />
+                    Print
+                </l-button>
+                <l-button class="tool" variant="outlined" (click)="exportLines()">
+                    <l-icon name="download" [size]="18" color="inherit" />
+                    Export
+                </l-button>
+            }
+            <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+                <l-icon name="cross" [size]="20" color="inherit" />
+            </l-button>
+        </div>
+    </header>
+
+    <div class="body">
+        <l-skeleton [visible]="loading()">
+            @if (cancelled()) {
+                <div class="cancelled" role="status">
+                    <l-icon name="error" [size]="16" color="inherit" />
+                    <span>
+                        This invoice is cancelled.
+                        @if (cancelRemarks()) {
+                            <span class="reason">Reason: {{ cancelRemarks() }}</span>
+                        }
+                    </span>
+                </div>
+            }
+
+            <form class="sections" [formGroup]="form">
+                <l-card class="section" padding="md">
+                    <div class="fields" [class.view]="readonly">
+                        <div class="field party">
+                            @if (!readonly) {
+                                <l-icon class="icon" name="user" [size]="16" color="inherit" />
+                            }
+                            <l-select
+                                [label]="readonly ? 'Customer Name' : ''"
+                                placeholder="Customer Name (Req.)"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="customerOptions()"
+                                [searchable]="true"
+                                [viewMode]="readonly"
+                                formControlName="customer_id"
+                            />
+                        </div>
+
+                        <div class="field date">
+                            @if (!readonly) {
+                                <l-icon class="icon" name="calendar" [size]="16" color="inherit" />
+                            }
+                            <l-date-input
+                                [label]="readonly ? 'Posting Date' : ''"
+                                placeholder="Posting Date (Req.)"
+                                format="YYYY/MM/DD"
+                                [calendar]="calendar"
+                                [showCalendarIcon]="false"
+                                [viewMode]="readonly"
+                                formControlName="date"
+                            />
+                        </div>
+
+                        <div class="field type">
+                            @if (!readonly) {
+                                <l-icon class="icon" name="wallet" [size]="16" color="inherit" />
+                            }
+                            <l-select
+                                [label]="readonly ? 'Transaction Type' : ''"
+                                placeholder="Transaction Type (Req.)"
+                                bindLabel="label"
+                                bindValue="value"
+                                [items]="transactionTypes"
+                                [viewMode]="readonly"
+                                formControlName="transaction_type"
+                            />
+                        </div>
+
+                        <div class="field toggle">
+                            <l-toggle
+                                label="Rounding Amount"
+                                labelPosition="left"
+                                [viewMode]="readonly"
+                                formControlName="rounded"
+                            />
+                        </div>
+                    </div>
+
+                    <app-party-details-card
+                        class="party"
+                        title="Customer & Sales Details"
+                        documentLabel="Invoice Number"
+                        [party]="customer()"
+                        [documentNumber]="entryNo()"
+                    />
+                </l-card>
+
+                <l-card class="section" padding="md">
+                    <div class="section-head">
+                        <h3 class="section-title">Product Details</h3>
+                        @if (!readonly) {
+                            <l-button class="add" variant="outlined-primary" (click)="addLine()">
+                                <l-icon name="add" [size]="16" color="inherit" />
+                                Add Product
+                            </l-button>
+                        }
+                    </div>
+
+                    <l-table
+                        class="lines"
+                        emptyText="No products added yet."
+                        [columns]="lineColumns"
+                        [data]="lines()"
+                        [rowKey]="trackLine"
+                    >
+                        <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+                        <ng-template lTableCell="product" let-row>
+                            <l-select
+                                placeholder="Select product"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="productOptions()"
+                                [searchable]="true"
+                                [viewMode]="readonly"
+                                [formControl]="row.controls.product_id"
+                                (change)="onProductChange(row, $event)"
+                            />
+                        </ng-template>
+
+                        <ng-template lTableCell="code" let-row>{{ productOf(row)?.code || '-' }}</ng-template>
+                        <ng-template lTableCell="unit" let-row>{{ productOf(row)?.unit_name || '-' }}</ng-template>
+
+                        <ng-template lTableCell="batch" let-row>
+                            <l-select
+                                placeholder="Select batch"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="batchItems(row)"
+                                [viewMode]="readonly"
+                                [viewValue]="batchLabel(row)"
+                                [formControl]="row.controls.batch_id"
+                                (change)="onBatchChange(row)"
+                            />
+                        </ng-template>
+
+                        <ng-template lTableCell="expiry_date" let-row>
+                            <app-date-text format="YYYY/MM/DD" [date]="batchOf(row)?.expiry_date" [calendar]="calendar" />
+                        </ng-template>
+
+                        <ng-template lTableCell="stock" let-row>{{ batchOf(row)?.available_quantity ?? '-' }}</ng-template>
+                        <ng-template lTableCell="tax" let-row>{{ taxLabel(row) }}</ng-template>
+
+                        <ng-template lTableCell="quantity" let-row>
+                            <l-number-input placeholder="Quantity" [decimalPlaces]="3" [viewMode]="readonly" [formControl]="row.controls.quantity" />
+                        </ng-template>
+
+                        <ng-template lTableCell="selling_price" let-row>
+                            <l-number-input placeholder="Rate" [decimalPlaces]="2" [viewMode]="readonly" [formControl]="row.controls.selling_price" />
+                        </ng-template>
+
+                        <ng-template lTableCell="mrp" let-row>{{ row.controls.mrp.value | amount }}</ng-template>
+
+                        <ng-template lTableCell="amount" let-row>
+                            <div class="amount" [class.view]="readonly">{{ amountOf(row) | amount }}</div>
+                        </ng-template>
+
+                        <ng-template lTableCell="actions" let-row>
+                            <l-button class="remove" variant="ghost" size="sm" [rounded]="true" aria-label="Remove product" (click)="removeLine(row)">
+                                <l-icon name="trash" [size]="16" color="inherit" />
+                            </l-button>
+                        </ng-template>
+                    </l-table>
+
+                    <app-invoice-summary-card
+                        class="summary"
+                        [summary]="summary()"
+                        [discountType]="form.controls.discount_type"
+                        [discount]="form.controls.discount"
+                        [readonly]="readonly"
+                    />
+                </l-card>
+
+                <l-textarea
+                    class="remarks"
+                    label="Remarks"
+                    placeholder="Enter remarks"
+                    [rows]="2"
+                    [viewMode]="readonly"
+                    formControlName="remarks"
+                />
+            </form>
+        </l-skeleton>
+    </div>
+
+    <footer class="foot">
+        @if (readonly) {
+            <l-button variant="outlined" (click)="close()">Close</l-button>
+            @if (canCancel()) {
+                <l-button variant="danger" (click)="cancelSale()">
+                    <l-icon name="cross" [size]="18" color="inherit" />
+                    Cancel Invoice
+                </l-button>
+            }
+        } @else {
+            <l-button variant="outlined" (click)="close()">Cancel</l-button>
+            <l-button variant="primary" [disabled]="saving() || loading()" (click)="save()">
+                {{ saving() ? 'Saving…' : 'Add' }}
+            </l-button>
+        }
+    </footer>
+</div>

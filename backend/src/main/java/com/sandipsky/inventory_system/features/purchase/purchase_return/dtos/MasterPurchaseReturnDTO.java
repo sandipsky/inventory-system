@@ -52,5 +52,12 @@ public class MasterPurchaseReturnDTO {
     @JsonProperty("vendor_name")
     private String vendorName;
 
+    // The purchase being returned against; null when there is none
+    @JsonProperty("ref_purchase_id")
+    private Integer refPurchaseId;
+
+    @JsonProperty("ref_purchase_no")
+    private String refPurchaseNo;
+
     private List<PurchaseReturnEntryDTO> purchaseReturnEntries;
 }

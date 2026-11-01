@@ -25,6 +25,10 @@ export class DropdownService {
     return this.http.get<DropdownItem[]>(`${this.baseUrl}/vendor/${status}`);
   }
 
+  customers(status: DropdownStatus = 'active'): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/customer/${status}`);
+  }
+
   categories(status: DropdownStatus = 'active'): Observable<DropdownItem[]> {
     return this.http.get<DropdownItem[]>(`${this.baseUrl}/category/${status}`);
   }
@@ -52,6 +56,16 @@ export class DropdownService {
     status: DropdownStatus = 'active',
   ): Observable<DropdownItem[]> {
     return this.http.get<DropdownItem[]>(`${this.baseUrl}/products/${serviceType}/${type}/${status}`);
+  }
+
+  /** A vendor's purchases, newest first; `name` is the raw `system_entry_no`. */
+  purchases(vendorId: number): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/purchase/${vendorId}`);
+  }
+
+  /** A customer's sales that are not cancelled, newest first; `name` is the raw `system_entry_no`. */
+  sales(customerId: number): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/sales/${customerId}`);
   }
 
   /** Chart of accounts entries, e.g. `accounts('party', 'vendor')` for vendor accounts. */

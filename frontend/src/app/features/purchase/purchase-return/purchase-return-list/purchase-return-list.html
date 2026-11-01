@@ -1,1 +1,135 @@
-<p>purchase-return-list works!</p>
+<app-list-page-card>
+    <app-list-card-title>
+        <l-filter
+            class="filter"
+            searchBy="vendor.name"
+            [filterColumns]="filterColumns"
+            (filterChange)="onFilterChange($event)"
+        />
+
+        <l-segmented-control
+            class="calendar"
+            size="md"
+            name="calendar"
+            aria-label="Calendar system"
+            [options]="calendarOptions"
+            [(ngModel)]="calendar"
+        />
+
+        <l-date-input
+            class="date"
+            aria-label="From date"
+            placeholder="From"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [max]="toDate()"
+            [(ngModel)]="fromDate"
+            (ngModelChange)="resetPage()"
+        />
+
+        <l-date-input
+            class="date"
+            aria-label="To date"
+            placeholder="To"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [min]="fromDate()"
+            [(ngModel)]="toDate"
+            (ngModelChange)="resetPage()"
+        />
+
+        <l-button card-actions class="action" variant="outlined" (click)="print()">
+            <l-icon name="printer" [size]="18" color="inherit" />
+            Print
+        </l-button>
+
+        <l-button card-actions class="action" variant="outlined" [disabled]="exporting()" (click)="exportList()">
+            <l-icon name="download" [size]="18" color="inherit" />
+            {{ exporting() ? 'Exporting…' : 'Export' }}
+        </l-button>
+
+        @if (canCreate()) {
+            <l-button card-actions class="action" variant="primary" (click)="openForm('add')">
+                <l-icon name="add" [size]="18" color="inherit" />
+                Add Purchase Return
+            </l-button>
+        }
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <l-table
+            class="table"
+            rowKey="id"
+            [columns]="columns"
+            [data]="rows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+            [serverSort]="true"
+            [(sort)]="sort"
+            (sortChange)="resetPage()"
+        >
+            <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+            <ng-template lTableCell="system_entry_no" let-row>
+                <l-button class="link" variant="ghost" size="sm" (click)="openForm('view', row.id)">
+                    {{ row.system_entry_no | docNo }}
+                </l-button>
+            </ng-template>
+
+            <ng-template lTableCell="date" let-row>
+                <app-date-text [date]="row.date" [calendar]="calendar()" />
+            </ng-template>
+
+            <ng-template lTableCell="bill_no" let-row>{{ row.bill_no || '-' }}</ng-template>
+            <ng-template lTableCell="ref_purchase_no" let-row>{{ (row.ref_purchase_no | docNo) || '-' }}</ng-template>
+
+            <ng-template lTableCell="transaction_type" let-row>
+                <l-chip size="sm" [dot]="true" [variant]="row.transaction_type === 'Credit' ? 'premium' : 'success'">
+                    {{ row.transaction_type | uppercase }}
+                </l-chip>
+            </ng-template>
+
+            <ng-template lTableCell="sub_total" let-row>
+                <div class="stack">
+                    <span>{{ row.sub_total | amount }}</span>
+                    <span class="discount">{{ discountOf(row) | amount }} Discount</span>
+                </div>
+            </ng-template>
+
+            <ng-template lTableCell="tax" let-row>{{ row.tax | amount }}</ng-template>
+
+            <ng-template lTableCell="grand_total" let-row>
+                <strong>{{ row.grand_total | amount }}</strong>
+            </ng-template>
+
+            <ng-template lTableCell="actions" let-row>
+                <l-menu class="row-menu" mode="right">
+                    <l-button dropdown-display class="more" variant="outlined" size="sm" [attr.aria-label]="'Actions for ' + (row.system_entry_no | docNo)">
+                        <l-icon name="more" [size]="16" color="inherit" />
+                    </l-button>
+
+                    <div dropdown-item class="menu-item" (click)="openForm('view', row.id)">
+                        <l-icon name="eye" [size]="16" color="inherit" />
+                        View
+                    </div>
+                    @if (canEdit()) {
+                        <div dropdown-item class="menu-item" (click)="openForm('edit', row.id)">
+                            <l-icon name="edit" [size]="16" color="inherit" />
+                            Edit
+                        </div>
+                    }
+                    @if (canDelete()) {
+                        <div dropdown-item class="menu-item danger" (click)="remove(row)">
+                            <l-icon name="trash" [size]="16" color="inherit" />
+                            Delete
+                        </div>
+                    }
+                </l-menu>
+            </ng-template>
+        </l-table>
+    </app-list-card-body>
+
+    <app-list-card-footer>
+        <l-pagination [length]="total()" [(pageIndex)]="pageIndex" [(pageSize)]="pageSize" />
+    </app-list-card-footer>
+</app-list-page-card>

@@ -15,6 +15,18 @@ export interface Product {
   has_expiry_date: boolean;
 }
 
+/** One row of `GET /products/stockInfo/{id}`: a batch of the product and what it holds. */
+export interface BatchStock {
+  /** `0` is the product's default batch, which has no `batch_no`. */
+  batch_id: number;
+  batch_no: string | null;
+  expiry_date: string | null;
+  available_quantity: number;
+  cost_price: number;
+  selling_price: number;
+  mrp: number;
+}
+
 /** "Buy at least `min_quantity`, get `bonus_quantity` free." */
 export interface BonusInfo {
   /** Present on saved rules; the server replaces the whole list on every save. */

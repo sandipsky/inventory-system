@@ -1,6 +1,14 @@
 /** How a document's `discount` is read: a percent of the gross, or a flat amount. */
 export type DiscountType = 'Percentage' | 'Flat';
 
+/** `Cash` is settled now; `Credit` records an amount due to or from the party. */
+export type TransactionType = 'Cash' | 'Credit';
+
+export const TRANSACTION_TYPES: { label: string; value: TransactionType }[] = [
+  { label: 'Cash', value: 'Cash' },
+  { label: 'Credit', value: 'Credit' },
+];
+
 /** Totals of a purchase, sale or return. The API stores these as sent, so the app computes them. */
 export interface InvoiceSummary {
   /** Sum of quantity × rate, before discount (`sub_total`). */

@@ -6,6 +6,11 @@ export function round2(value: number): number {
   return Math.round(Number((value * 100).toPrecision(15))) / 100;
 }
 
+/** A line's amount: quantity × rate, blanks counting as 0. */
+export function lineAmount(quantity: number | null | undefined, rate: number | null | undefined): number {
+  return round2((quantity ?? 0) * (rate ?? 0));
+}
+
 /**
  * Document totals. The discount is spread over the lines in proportion to their
  * amount, so it lowers the taxable and non-taxable parts alike, and tax is charged

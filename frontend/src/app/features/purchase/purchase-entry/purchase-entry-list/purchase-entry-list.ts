@@ -72,7 +72,7 @@ const SORT_FIELDS: Record<string, string> = {
     UpperCasePipe,
   ],
   selector: 'app-purchase-entry-list',
-  styleUrl: './purchase-entry-list.scss',
+  styleUrl: '../../../../shared/styles/document-list.scss',
   templateUrl: './purchase-entry-list.html',
 })
 export class PurchaseEntryList {

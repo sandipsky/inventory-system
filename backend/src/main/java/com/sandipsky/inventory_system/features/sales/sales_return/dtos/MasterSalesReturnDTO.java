@@ -43,11 +43,23 @@ public class MasterSalesReturnDTO {
 
     private String remarks;
 
+    private boolean isCancelled;
+
+    @JsonProperty("cancel_remarks")
+    private String cancelRemarks;
+
     @JsonProperty("customer_id")
     private int customerId;
 
     @JsonProperty("customer_name")
     private String customerName;
+
+    // The sales invoice being returned against; null when there is none
+    @JsonProperty("ref_sales_id")
+    private Integer refSalesId;
+
+    @JsonProperty("ref_sales_no")
+    private String refSalesNo;
 
     private List<SalesReturnEntryDTO> salesReturnEntries;
 }

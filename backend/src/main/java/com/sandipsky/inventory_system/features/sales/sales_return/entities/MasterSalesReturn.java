@@ -1,5 +1,6 @@
 package com.sandipsky.inventory_system.features.sales.sales_return.entities;
 import com.sandipsky.inventory_system.features.sales.customer.entities.Customer;
+import com.sandipsky.inventory_system.features.sales.sales_entry.entities.MasterSalesEntry;
 
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -52,6 +53,12 @@ public class MasterSalesReturn {
 	@Column(columnDefinition = "TEXT")
 	private String remarks;
 
+	@Column(columnDefinition = "boolean default false")
+	private boolean isCancelled;
+
+	@Column(columnDefinition = "TEXT")
+	private String cancelRemarks;
+
 	@JsonIgnore
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	@JoinColumn(name = "masterSalesReturnId", referencedColumnName = "id")
@@ -60,4 +67,9 @@ public class MasterSalesReturn {
 	@ManyToOne
 	@JoinColumn(name = "customer_id")
 	private Customer customer;
+
+	// The sales invoice the goods were sold on, when the return names one
+	@ManyToOne
+	@JoinColumn(name = "ref_sales_id")
+	private MasterSalesEntry refSales;
 }
