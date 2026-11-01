@@ -1,16 +1,19 @@
 import { Routes } from '@angular/router';
+import { permissionGuard } from '../../auth/auth-guard';
 
 export const PURCHASE_ROUTES: Routes = [
     {
         path: 'entry',
-        data: { breadcrumb: 'Purchase Entry' },
+        data: { breadcrumb: 'Purchase Entry', operation: 'ViewPurchaseEntry' },
+        canActivate: [permissionGuard],
         // Add, edit and view open the form in a bottom drawer, so there are no child routes.
         loadComponent: () =>
             import('./purchase-entry/purchase-entry-list/purchase-entry-list').then(m => m.PurchaseEntryList),
     },
     {
         path: 'return',
-        data: { breadcrumb: 'Purchase Return' },
+        data: { breadcrumb: 'Purchase Return', operation: 'ViewPurchaseReturn' },
+        canActivate: [permissionGuard],
         children: [
             {
                 path: '',

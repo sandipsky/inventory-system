@@ -1,6 +1,9 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../../../auth/auth.service';
+import { testUser } from '../../../auth/auth.testing';
 import { ProfileMenu } from './profile-menu';
 
 describe('ProfileMenu', () => {
@@ -10,7 +13,7 @@ describe('ProfileMenu', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ProfileMenu],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProfileMenu);
@@ -29,7 +32,7 @@ describe('ProfileMenu', () => {
   });
 
   it('should show the avatar image when a profile picture is set', async () => {
-    TestBed.inject(AuthService).user.set({ username: 'jane', fullName: 'Jane Doe', avatarUrl: 'assets/jane.png' });
+    TestBed.inject(AuthService).user.set(testUser({ username: 'jane', fullName: 'Jane Doe', avatarUrl: 'assets/jane.png' }));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -39,11 +42,11 @@ describe('ProfileMenu', () => {
   });
 
   it('should fall back to username and a placeholder role', () => {
-    TestBed.inject(AuthService).user.set({ username: 'admin' });
+    TestBed.inject(AuthService).user.set(testUser({ username: 'admin' }));
     expect(component.name()).toBe('admin');
     expect(component.role()).toBe('No role assigned');
 
-    TestBed.inject(AuthService).user.set({ username: 'admin', fullName: 'Admin User', role: 'Administrator' });
+    TestBed.inject(AuthService).user.set(testUser({ username: 'admin', fullName: 'Admin User', role: 'Administrator' }));
     expect(component.name()).toBe('Admin User');
     expect(component.role()).toBe('Administrator');
   });
@@ -52,7 +55,7 @@ describe('ProfileMenu', () => {
     const auth = TestBed.inject(AuthService);
     const router = TestBed.inject(Router);
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-    auth.user.set({ username: 'jane' });
+    auth.user.set(testUser({ username: 'jane' }));
 
     component.logout();
 

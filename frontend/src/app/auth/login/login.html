@@ -1,1 +1,36 @@
-<p>login works!</p>
+<main class="login">
+    <section class="panel">
+        <img class="logo" src="assets/images/logo/abis.svg" alt="ABIS" width="90" height="28">
+
+        <div class="heading">
+            <h1 class="title">Welcome back</h1>
+            <p class="subtitle">Log in to manage your purchases, sales and stock.</p>
+        </div>
+
+        <form class="fields" [formGroup]="form">
+            <l-username-input
+                label="Username"
+                placeholder="Enter your username"
+                formControlName="username"
+                (enter)="submit()"
+            />
+
+            <l-password-input
+                label="Password"
+                placeholder="Enter your password"
+                formControlName="password"
+                (enter)="submit()"
+            />
+
+            @if (error()) {
+                <div class="alert error" role="alert">{{ error() }}</div>
+            }
+
+            <l-button class="submit" variant="primary" size="lg" width="full" [disabled]="submitting()" (click)="submit()">
+                {{ submitting() ? 'Logging in…' : 'Log in' }}
+            </l-button>
+        </form>
+    </section>
+
+    <p class="footnote">ABIS Inventory System</p>
+</main>

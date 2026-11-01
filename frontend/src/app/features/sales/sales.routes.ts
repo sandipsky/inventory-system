@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router';
+import { permissionGuard } from '../../auth/auth-guard';
 
 export const SALES_ROUTES: Routes = [
     {
         path: 'entry',
-        data: { breadcrumb: 'Sales Entry' },
+        data: { breadcrumb: 'Sales Entry', operation: 'ViewSalesEntries' },
+        canActivate: [permissionGuard],
         children: [
             {
                 path: '',
@@ -26,7 +28,8 @@ export const SALES_ROUTES: Routes = [
     },
     {
         path: 'return',
-        data: { breadcrumb: 'Sales Return' },
+        data: { breadcrumb: 'Sales Return', operation: 'ViewSalesReturns' },
+        canActivate: [permissionGuard],
         children: [
             {
                 path: '',
