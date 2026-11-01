@@ -43,6 +43,11 @@ export const routes: Routes = [
                 data: { breadcrumb: 'Master Data' },
                 loadChildren: () => import('./features/masters/masters.routes').then(m => m.MASTER_ROUTES),
             },
+            {
+                path: 'user-roles',
+                data: { breadcrumb: 'User & Roles' },
+                loadChildren: () => import('./features/user-roles/user-roles.routes').then(m => m.USER_ROLES_ROUTES),
+            },
         ],
     },
     {

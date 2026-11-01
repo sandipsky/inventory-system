@@ -1,0 +1,163 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon [name]="heading().icon" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">{{ title() }}</h2>
+                <p class="subtitle">{{ heading().subtitle }}</p>
+            </div>
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <div class="body">
+        <l-skeleton [visible]="loading()">
+            <div class="sections" [class.view]="readonly()">
+                <form class="column" [formGroup]="form">
+                    @if (own) {
+                        <p class="note">
+                            <l-icon name="lock" [size]="16" color="inherit" />
+                            <span>This is your own role. Permissions you remove are taken from you too.</span>
+                        </p>
+                    }
+
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Basic Details</h3>
+                        <div class="fields">
+                            <l-text-input label="Role Name" placeholder="e.g. Store Keeper" [viewMode]="readonly()" formControlName="name" />
+                            <l-textarea
+                                label="Description"
+                                placeholder="What this role is for"
+                                [rows]="3"
+                                [viewMode]="readonly()"
+                                formControlName="description"
+                            />
+                        </div>
+                    </l-card>
+
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Role Settings</h3>
+                        <div class="toggles">
+                            <l-toggle label="Active" labelPosition="left" [viewMode]="readonly()" formControlName="is_active" />
+                        </div>
+                        <p class="hint">Inactive roles are left out of the role list when adding or editing a user.</p>
+                    </l-card>
+                </form>
+
+                <div class="column">
+                    <l-card class="section" padding="md">
+                        <div class="section-head">
+                            <div>
+                                <h3 class="section-title">Permissions</h3>
+                                <p class="hint">
+                                    {{ countOf(allIds()) }} of {{ allIds().length }} {{ readonly() ? 'granted' : 'selected' }}
+                                </p>
+                            </div>
+                            @if (!readonly()) {
+                                <div class="bulk">
+                                    <l-button variant="outlined" size="sm" [disabled]="loadingGroups()" (click)="setAll(allIds(), true)">
+                                        Select all
+                                    </l-button>
+                                    <l-button variant="outlined" size="sm" [disabled]="loadingGroups()" (click)="setAll(allIds(), false)">
+                                        Clear
+                                    </l-button>
+                                </div>
+                            }
+                        </div>
+
+                        @if (loadingGroups()) {
+                            <p class="hint">Loading permissions…</p>
+                        }
+
+                        <div class="groups">
+                            @for (group of groups(); track group.title) {
+                                <div class="group">
+                                    <div class="group-head">
+                                        <l-checkbox
+                                            [label]="group.title"
+                                            [disabled]="readonly()"
+                                            [ngModel]="allOf(group.ids)"
+                                            (ngModelChange)="setAll(group.ids, $event)"
+                                        />
+                                        <span class="count">{{ countOf(group.ids) }}/{{ group.ids.length }}</span>
+                                    </div>
+
+                                    <table class="matrix">
+                                        <thead>
+                                            <tr>
+                                                <th class="module">Module</th>
+                                                @for (action of actions; track action) {
+                                                    <th class="action">{{ action }}</th>
+                                                }
+                                                <th>Other</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (row of group.rows; track row.module) {
+                                                <tr>
+                                                    <td class="module">
+                                                        <l-checkbox
+                                                            [label]="row.label"
+                                                            [disabled]="readonly()"
+                                                            [ngModel]="allOf(row.ids)"
+                                                            (ngModelChange)="setAll(row.ids, $event)"
+                                                        />
+                                                    </td>
+                                                    @for (id of row.actions; track $index) {
+                                                        <td class="action">
+                                                            @if (id !== null) {
+                                                                <l-checkbox
+                                                                    [disabled]="readonly()"
+                                                                    [ngModel]="has(id)"
+                                                                    (ngModelChange)="setAll([id], $event)"
+                                                                />
+                                                            }
+                                                        </td>
+                                                    }
+                                                    <td>
+                                                        <div class="extras">
+                                                            @for (extra of row.extras; track extra.id) {
+                                                                <l-checkbox
+                                                                    [label]="extra.label"
+                                                                    [disabled]="readonly()"
+                                                                    [ngModel]="has(extra.id)"
+                                                                    (ngModelChange)="setAll([extra.id], $event)"
+                                                                />
+                                                            }
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </l-card>
+                </div>
+            </div>
+        </l-skeleton>
+    </div>
+
+    <footer class="foot">
+        @if (readonly()) {
+            <l-button variant="outlined" (click)="close()">Close</l-button>
+            @if (canEdit()) {
+                <l-button variant="primary" [disabled]="loading()" (click)="startEdit()">
+                    <l-icon name="edit" [size]="18" color="inherit" />
+                    Edit
+                </l-button>
+            }
+        } @else {
+            <l-button variant="outlined" (click)="close()">Cancel</l-button>
+            <l-button variant="primary" [disabled]="saving() || loading()" (click)="save()">
+                {{ saving() ? 'Saving…' : mode() === 'add' ? 'Add' : 'Update' }}
+            </l-button>
+        }
+    </footer>
+</div>

@@ -41,6 +41,10 @@ export class DropdownService {
     return this.http.get<DropdownItem[]>(`${this.baseUrl}/taxtypes/${status}`);
   }
 
+  roles(status: DropdownStatus = 'active'): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/roles/${status}`);
+  }
+
   /** e.g. `products('inventory', 'purchasable')` for the purchase line picker. */
   products(
     serviceType: ProductServiceType = 'all',

@@ -27,6 +27,7 @@ export interface AuthUser {
   /** Login handle; shown in the header when no full name is set. */
   username: string;
   fullName?: string;
+  roleId?: number;
   /** Role name shown under the user's name in the profile menu. */
   role?: string;
   /** Object URL of the profile picture; absent when none is set. */

@@ -1,0 +1,260 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.form-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-light);
+
+  .head,
+  .foot {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-lightest);
+  }
+
+  l-icon {
+    display: inline-flex;
+  }
+
+  .head {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--separator);
+
+    .heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--separator-dark);
+      border-radius: 8px;
+      background: var(--bg-lightest);
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
+    }
+
+    .title {
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .subtitle {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .close ::ng-deep .btn {
+      border-radius: 8px;
+      color: var(--text-tertiary);
+
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+  }
+
+  .body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px 20px;
+  }
+
+  // Details and settings in a narrow column on the left; the permission matrix takes the rest.
+  .sections {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+
+    @media (max-width: 1100px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .section-title {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  // Editing your own role.
+  .note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--info-bg);
+    color: var(--info);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .toggles {
+    l-toggle {
+      display: block;
+      padding: 8px 0;
+
+      // Label on the left, switch on the right edge.
+      ::ng-deep label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      ::ng-deep .control-label {
+        font-weight: 400;
+      }
+    }
+  }
+
+  .hint {
+    margin-top: 8px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .section-title {
+      margin-bottom: 0;
+    }
+
+    .hint {
+      margin-top: 2px;
+    }
+
+    .bulk {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 8px;
+    }
+  }
+
+  // One card per master module, tiled side by side when the sheet is wide enough to keep
+  // labels like "View Customer Payment" on one line.
+  .groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(620px, 1fr));
+    align-items: start;
+    gap: 12px;
+  }
+
+  .group {
+    border: 1px solid var(--separator);
+    border-radius: 8px;
+    overflow: hidden;
+
+    .group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--separator);
+      background: var(--bg-light);
+
+      ::ng-deep label {
+        font-weight: 600;
+      }
+    }
+
+    .count {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+  }
+
+  .matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th {
+      padding: 6px 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 16px;
+      text-align: left;
+    }
+
+    td {
+      padding: 6px 12px;
+      border-top: 1px solid var(--separator);
+      vertical-align: middle;
+    }
+
+    .module {
+      width: 210px;
+    }
+
+    .action {
+      width: 56px;
+      text-align: center;
+
+      l-checkbox {
+        display: inline-flex;
+      }
+    }
+
+    // Each extra wraps as a whole, never mid-label.
+    .extras {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 16px;
+      white-space: nowrap;
+    }
+  }
+
+  // View mode: Lumen marks required labels even when they only display a value.
+  .sections.view ::ng-deep .required-asterisk {
+    display: none;
+  }
+
+  .foot {
+    justify-content: flex-end;
+    border-top: 1px solid var(--separator);
+  }
+}

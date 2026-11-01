@@ -63,6 +63,22 @@ describe('AuthService', () => {
     expect(calls).toBe(1);
   });
 
+  it('refetches the user when asked, e.g. after their role changed', () => {
+    service.loadUser().subscribe();
+    http.expectOne(`${environment.apiUrl}/getUserRoleOperations`).flush({
+      id: 1, username: 'admin', name: null, role_id: 1, role_name: 'Admin', image_url: null,
+      master_modules: [], modules: [], operations: ['ViewRole', 'EditRole'],
+    });
+    expect(service.user()?.roleId).toBe(1);
+
+    service.refreshUser().subscribe();
+    http.expectOne(`${environment.apiUrl}/getUserRoleOperations`).flush({
+      id: 1, username: 'admin', name: null, role_id: 1, role_name: 'Admin', image_url: null,
+      master_modules: [], modules: [], operations: ['ViewRole'],
+    });
+    expect(service.hasOperation('EditRole')).toBe(false);
+  });
+
   it('treats an expired token as logged out', () => {
     localStorage.setItem('auth_token', testToken(-60));
     TestBed.resetTestingModule();

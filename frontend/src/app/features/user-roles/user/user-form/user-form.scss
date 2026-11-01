@@ -1,0 +1,182 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.form-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-light);
+
+  .head,
+  .foot {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-lightest);
+  }
+
+  l-icon {
+    display: inline-flex;
+  }
+
+  .head {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--separator);
+
+    .heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--separator-dark);
+      border-radius: 8px;
+      background: var(--bg-lightest);
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
+    }
+
+    .title {
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .subtitle {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .close ::ng-deep .btn {
+      border-radius: 8px;
+      color: var(--text-tertiary);
+
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+  }
+
+  .body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px 20px;
+  }
+
+  // Details on the left; settings in a narrower column on the right.
+  .sections {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    align-items: start;
+    gap: 16px;
+
+    @media (max-width: 1100px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .section-title {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px 16px;
+
+    .wide {
+      grid-column: span 2;
+    }
+  }
+
+  .toggles {
+    l-toggle {
+      display: block;
+      padding: 8px 0;
+
+      // Label on the left, switch on the right edge.
+      ::ng-deep label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      ::ng-deep .control-label {
+        font-weight: 400;
+      }
+    }
+  }
+
+  // Why the role and status of your own account are locked.
+  .note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--info-bg);
+    color: var(--info);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  // Avatar on the left, upload trigger and the picked file beside it.
+  .picture {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .upload {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .hint {
+      margin-top: 0;
+    }
+  }
+
+  .hint {
+    margin-top: 8px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  // View mode: Lumen marks required labels even when they only display a value.
+  .sections.view ::ng-deep .required-asterisk {
+    display: none;
+  }
+
+  .foot {
+    justify-content: flex-end;
+    border-top: 1px solid var(--separator);
+  }
+}

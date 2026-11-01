@@ -1,0 +1,137 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon [name]="heading().icon" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">{{ title() }}</h2>
+                <p class="subtitle">{{ heading().subtitle }}</p>
+            </div>
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <div class="body">
+        <l-skeleton [visible]="loading()">
+            <form class="sections" [class.view]="readonly()" [formGroup]="form">
+                <div class="column">
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Basic Details</h3>
+                        <div class="grid">
+                            <l-text-input
+                                class="wide"
+                                label="Full Name"
+                                placeholder="e.g. Sita Sharma"
+                                [viewMode]="readonly()"
+                                formControlName="full_name"
+                            />
+                            <l-email-input label="Email" placeholder="name@example.com" [viewMode]="readonly()" formControlName="email" />
+                            <l-text-input label="Contact" placeholder="Phone number" [viewMode]="readonly()" formControlName="contact" />
+                            <l-select
+                                label="Gender"
+                                placeholder="Select gender"
+                                bindLabel="name"
+                                bindValue="name"
+                                [items]="genders"
+                                [clearable]="true"
+                                [viewMode]="readonly()"
+                                formControlName="gender"
+                            />
+                        </div>
+                    </l-card>
+
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Login & Access</h3>
+                        <div class="grid">
+                            <l-username-input label="Username" placeholder="Used to log in" [viewMode]="readonly()" formControlName="username" />
+                            <l-select
+                                label="Role"
+                                placeholder="Select role"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="roleOptions()"
+                                [searchable]="true"
+                                [viewMode]="readonly()"
+                                formControlName="role_id"
+                            />
+                            @if (!readonly()) {
+                                <l-password-input
+                                    label="Password"
+                                    [placeholder]="mode() === 'add' ? 'Enter a password' : 'Leave blank to keep it'"
+                                    [showRules]="mode() === 'add' || !!password()"
+                                    formControlName="password"
+                                />
+                            }
+                        </div>
+                    </l-card>
+
+                    <l-textarea label="Remarks" placeholder="Enter remarks" [rows]="2" [viewMode]="readonly()" formControlName="remarks" />
+                </div>
+
+                <div class="column">
+                    @if (self) {
+                        <p class="note">
+                            <l-icon name="lock" [size]="16" color="inherit" />
+                            <span>This is your own account, so another user has to change its role or status. Changing the username logs you out.</span>
+                        </p>
+                    }
+
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Profile Picture</h3>
+                        <div class="picture">
+                            <app-user-avatar
+                                [path]="record()?.image_url ?? null"
+                                [preview]="picturePreview()"
+                                [name]="fullName()"
+                                size="72px"
+                            />
+                            @if (!readonly()) {
+                                <div class="upload">
+                                    <l-file-upload
+                                        variant="button"
+                                        hint="JPG, PNG, GIF or WEBP, up to 10 MB"
+                                        [accept]="pictureTypes"
+                                        [maxSizeMb]="pictureMaxMb"
+                                        [(files)]="picture"
+                                        (rejected)="onPictureRejected($event)"
+                                    />
+                                </div>
+                            } @else if (!record()?.image_url) {
+                                <p class="hint">No picture.</p>
+                            }
+                        </div>
+                    </l-card>
+
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">User Settings</h3>
+                        <div class="toggles">
+                            <l-toggle label="Active" labelPosition="left" [viewMode]="readonly()" formControlName="is_active" />
+                        </div>
+                        <p class="hint">Inactive users can't log in.</p>
+                    </l-card>
+                </div>
+            </form>
+        </l-skeleton>
+    </div>
+
+    <footer class="foot">
+        @if (readonly()) {
+            <l-button variant="outlined" (click)="close()">Close</l-button>
+            @if (canEdit()) {
+                <l-button variant="primary" [disabled]="loading()" (click)="startEdit()">
+                    <l-icon name="edit" [size]="18" color="inherit" />
+                    Edit
+                </l-button>
+            }
+        } @else {
+            <l-button variant="outlined" (click)="close()">Cancel</l-button>
+            <l-button variant="primary" [disabled]="saving() || loading()" (click)="save()">
+                {{ saving() ? 'Saving…' : mode() === 'add' ? 'Add' : 'Update' }}
+            </l-button>
+        }
+    </footer>
+</div>

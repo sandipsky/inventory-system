@@ -1,0 +1,83 @@
+<app-list-page-card>
+    <app-list-card-title>
+        <l-filter
+            class="filter"
+            searchBy="name"
+            [filterColumns]="filterColumns"
+            (filterChange)="onFilterChange($event)"
+        />
+
+        @if (canCreate()) {
+            <l-button card-actions class="action" variant="primary" (click)="openForm('add')">
+                <l-icon name="add" [size]="18" color="inherit" />
+                Add Role
+            </l-button>
+        }
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <l-table
+            class="table"
+            rowKey="id"
+            [columns]="columns"
+            [data]="rows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+            [serverSort]="true"
+            [(sort)]="sort"
+            (sortChange)="resetPage()"
+        >
+            <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+            <ng-template lTableCell="name" let-row>
+                <div class="meta">
+                    <l-button class="link" variant="ghost" size="sm" (click)="openForm('view', row.id)">{{ row.name }}</l-button>
+                    @if (isOwn(row)) {
+                        <l-chip size="sm" variant="info">Your role</l-chip>
+                    }
+                </div>
+            </ng-template>
+
+            <ng-template lTableCell="description" let-row>{{ row.description || '-' }}</ng-template>
+
+            <ng-template lTableCell="permissions" let-row>
+                {{ row.operation_ids.length }} {{ row.operation_ids.length === 1 ? 'permission' : 'permissions' }}
+            </ng-template>
+
+            <ng-template lTableCell="is_active" let-row>
+                <l-chip size="sm" [dot]="true" [variant]="row.is_active ? 'success' : 'default'">
+                    {{ row.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                </l-chip>
+            </ng-template>
+
+            <ng-template lTableCell="actions" let-row>
+                <l-menu class="row-menu" mode="right">
+                    <l-button dropdown-display class="more" variant="outlined" size="sm" [attr.aria-label]="'Actions for ' + row.name">
+                        <l-icon name="more" [size]="16" color="inherit" />
+                    </l-button>
+
+                    <div dropdown-item class="menu-item" (click)="openForm('view', row.id)">
+                        <l-icon name="eye" [size]="16" color="inherit" />
+                        View
+                    </div>
+                    @if (canEdit()) {
+                        <div dropdown-item class="menu-item" (click)="openForm('edit', row.id)">
+                            <l-icon name="edit" [size]="16" color="inherit" />
+                            Edit
+                        </div>
+                    }
+                    @if (canDelete()) {
+                        <div dropdown-item class="menu-item danger" (click)="remove(row)">
+                            <l-icon name="trash" [size]="16" color="inherit" />
+                            Delete
+                        </div>
+                    }
+                </l-menu>
+            </ng-template>
+        </l-table>
+    </app-list-card-body>
+
+    <app-list-card-footer>
+        <l-pagination [length]="total()" [(pageIndex)]="pageIndex" [(pageSize)]="pageSize" />
+    </app-list-card-footer>
+</app-list-page-card>

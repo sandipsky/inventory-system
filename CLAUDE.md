@@ -33,7 +33,8 @@ src/app/features/<module>/        <module>.routes.ts, <module>.model.ts, <module
 src/app/features/masters/         one list + one form for units, categories, packings, tax types (MASTERS config)
 src/app/features/party/           one list + one form for vendors and customers (PARTIES config), routed under /purchase and /sales
 src/app/features/accounting/      accounting.routes.ts; account/ is the chart of accounts
-src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator
+src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
+src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator, user-avatar
 src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), breadcrumb
 src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing)
 ```
@@ -61,6 +62,9 @@ src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (
 - `GET /getUserRoleOperations` gives the user's operations (`ViewPurchaseEntry`, `CreatePurchaseEntry`, …); `AuthService.hasOperation()` checks them.
 - Routes declare `data: { operation: 'View…' }` with `canActivate: [permissionGuard]`; sidebar links carry the same operation and are hidden when it isn't granted.
 - Gate buttons and row actions on the matching `Create…` / `Edit…` / `Delete…` operation.
+- After saving the signed-in user's own role or account, call `AuthService.refreshUser()` so menus and the header follow. Their token names their username, so renaming yourself means logging in again.
+- The API deletes a role its users still have (and clears its operations first), after which `GET /users` fails for everyone. Check `UserService.countWithRole` before deleting one.
+- Profile pictures (`image_url`) need the auth header; show them with `<app-user-avatar>`, never an `<img src>`.
 
 ### List pages
 
@@ -78,11 +82,11 @@ Query state lives in signals; a `computed` request feeds `toObservable` + `switc
 
 ### Document forms
 
-Add, edit and view open the same form in a near full-screen bottom drawer (`DrawerService`, `position: 'bottom'`, `panelClass: 'drawer-sheet'`, `disableClose: true`), with the mode and id in `DRAWER_DATA`; there are no form routes. Line items are a typed `FormArray` rendered by `l-table` cell templates. Batches: purchases and sales returns type a `batch_no`; sales and purchase returns pick a `batch_id` from `GET /products/stockInfo/{id}`. Products use this drawer too.
+Add, edit and view open the same form in a near full-screen bottom drawer (`DrawerService`, `position: 'bottom'`, `panelClass: 'drawer-sheet'`, `disableClose: true`), with the mode and id in `DRAWER_DATA`; there are no form routes. Line items are a typed `FormArray` rendered by `l-table` cell templates. Batches: purchases and sales returns type a `batch_no`; sales and purchase returns pick a `batch_id` from `GET /products/stockInfo/{id}`. Products, vendors and customers (`PartyForm`, `data.party` picks the `PARTIES` entry), users (`UserForm`, saved as multipart with an optional picture) and roles (`RoleForm`, with the permission matrix) use this drawer too: the list's name link and View open the read-only form, whose Edit button switches to edit in place.
 
 ### Master data forms
 
-Units, categories, packings and tax types share `MasterList` and `MasterForm`; the route's `data.master` picks the `MASTERS` entry (path, labels, operations, whether it has a `tax_rate`). Add and edit open in a 350px right drawer (`position: 'right'`, `size: '350px'`) with the row itself in `DRAWER_DATA`, so nothing loads; there is no view mode. Vendors and customers (`PartyList`/`PartyForm`, `data.party` picks the `PARTIES` entry) and the chart of accounts (`AccountList`/`AccountForm`) work the same way in a 400px drawer.
+Units, categories, packings and tax types share `MasterList` and `MasterForm`; the route's `data.master` picks the `MASTERS` entry (path, labels, operations, whether it has a `tax_rate`). Add and edit open in a 350px right drawer (`position: 'right'`, `size: '350px'`) with the row itself in `DRAWER_DATA`, so nothing loads; there is no view mode. The chart of accounts (`AccountList`/`AccountForm`) works the same way in a 400px drawer.
 
 ## Checking UI changes
 

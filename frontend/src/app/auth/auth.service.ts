@@ -53,16 +53,21 @@ export class AuthService {
     const user = this.user();
     if (user) return of(user);
 
-    this.userRequest ??= this.http
-      .get<UserRoleOperations>(`${environment.apiUrl}/getUserRoleOperations`)
-      .pipe(
-        tap(dto => this.loadAvatar(dto.id, dto.image_url)),
-        map(toAuthUser),
-        tap(user => this.user.set(user)),
-        finalize(() => (this.userRequest = null)),
-        shareReplay(1),
-      );
+    this.userRequest ??= this.fetchUser().pipe(
+      finalize(() => (this.userRequest = null)),
+      shareReplay(1),
+    );
     return this.userRequest;
+  }
+
+  /** Fetches the user again after their own role or profile changed, so menus, buttons and the header follow. */
+  refreshUser(): Observable<AuthUser> {
+    const previousAvatar = this.user()?.avatarUrl;
+    return this.fetchUser().pipe(
+      tap(() => {
+        if (previousAvatar) URL.revokeObjectURL(previousAvatar);
+      }),
+    );
   }
 
   logout() {
@@ -90,6 +95,14 @@ export class AuthService {
     this.user.set(null);
   }
 
+  private fetchUser(): Observable<AuthUser> {
+    return this.http.get<UserRoleOperations>(`${environment.apiUrl}/getUserRoleOperations`).pipe(
+      tap(dto => this.loadAvatar(dto.id, dto.image_url)),
+      map(toAuthUser),
+      tap(user => this.user.set(user)),
+    );
+  }
+
   private setToken(token: string) {
     localStorage.setItem(TOKEN_KEY, token);
     this.token.set(token);
@@ -114,6 +127,7 @@ function toAuthUser(dto: UserRoleOperations): AuthUser {
     id: dto.id,
     username: dto.username,
     fullName: dto.name ?? undefined,
+    roleId: dto.role_id ?? undefined,
     role: dto.role_name ?? undefined,
     masterModules: dto.master_modules ?? [],
     operations: dto.operations ?? [],
