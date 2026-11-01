@@ -8,6 +8,9 @@ import { DropdownItem } from '../models/api.model';
 export type DropdownStatus = 'active' | 'all';
 export type ProductServiceType = 'inventory' | 'service' | 'all';
 export type ProductTradeType = 'purchasable' | 'sellable' | 'all';
+/** `party` accounts belong to a vendor or customer; `nonparty` ones don't. */
+export type AccountScope = 'party' | 'nonparty' | 'all';
+export type AccountPartyType = 'vendor' | 'customer' | 'all';
 
 /**
  * `{ id, name }` lists for select boxes (`GET /dropdown/...`). Not paged, and they
@@ -45,5 +48,14 @@ export class DropdownService {
     status: DropdownStatus = 'active',
   ): Observable<DropdownItem[]> {
     return this.http.get<DropdownItem[]>(`${this.baseUrl}/products/${serviceType}/${type}/${status}`);
+  }
+
+  /** Chart of accounts entries, e.g. `accounts('party', 'vendor')` for vendor accounts. */
+  accounts(
+    scope: AccountScope = 'all',
+    partyType: AccountPartyType = 'all',
+    status: DropdownStatus = 'active',
+  ): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/accountMaster/${scope}/${partyType}/${status}`);
   }
 }

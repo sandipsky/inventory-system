@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { permissionGuard } from '../../auth/auth-guard';
+import { partyRoute } from '../party/party.routes';
 
 export const SALES_ROUTES: Routes = [
     {
@@ -50,5 +51,6 @@ export const SALES_ROUTES: Routes = [
             },
         ],
     },
+    partyRoute('customers', 'customer'),
     { path: '', redirectTo: 'entry', pathMatch: 'full' },
 ];

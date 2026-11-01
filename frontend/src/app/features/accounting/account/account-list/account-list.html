@@ -1,0 +1,91 @@
+<app-list-page-card>
+    <app-list-card-title>
+        <l-filter
+            class="filter"
+            searchBy="accountName"
+            [filterColumns]="filterColumns()"
+            (filterChange)="onFilterChange($event)"
+        />
+
+        @if (canCreate()) {
+            <l-button card-actions class="action" variant="primary" (click)="openForm()">
+                <l-icon name="add" [size]="18" color="inherit" />
+                Add Account
+            </l-button>
+        }
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <l-table
+            class="table"
+            rowKey="id"
+            [columns]="columns()"
+            [data]="rows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+            [serverSort]="true"
+            [(sort)]="sort"
+            (sortChange)="resetPage()"
+        >
+            <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+            <ng-template lTableCell="account_name" let-row>
+                <div class="stack">
+                    @if (canEdit()) {
+                        <l-button class="link" variant="ghost" size="sm" (click)="openForm(row)">{{ row.account_name }}</l-button>
+                    } @else {
+                        <span class="name">{{ row.account_name }}</span>
+                    }
+                    <div class="meta">
+                        <span class="muted">{{ row.account_code || 'No code' }}</span>
+                        @if (ownerChip(row); as chip) {
+                            <l-chip size="sm" [variant]="chip.variant">{{ chip.label }}</l-chip>
+                        }
+                    </div>
+                </div>
+            </ng-template>
+
+            <ng-template lTableCell="account_type" let-row>
+                <div class="stack">
+                    <span>{{ row.account_type }}</span>
+                    <span class="muted">{{ headingOf(row) }}</span>
+                </div>
+            </ng-template>
+
+            <ng-template lTableCell="parent_account_name" let-row>{{ row.parent_account_name || '-' }}</ng-template>
+
+            <ng-template lTableCell="is_active" let-row>
+                <l-chip size="sm" [dot]="true" [variant]="row.is_active ? 'success' : 'default'">
+                    {{ row.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                </l-chip>
+            </ng-template>
+
+            <ng-template lTableCell="actions" let-row>
+                @if (canEdit() || canDeleteRow(row)) {
+                    <l-menu class="row-menu" mode="right">
+                        <l-button dropdown-display class="more" variant="outlined" size="sm" [attr.aria-label]="'Actions for ' + row.account_name">
+                            <l-icon name="more" [size]="16" color="inherit" />
+                        </l-button>
+
+                        @if (canEdit()) {
+                            <div dropdown-item class="menu-item" (click)="openForm(row)">
+                                <l-icon name="edit" [size]="16" color="inherit" />
+                                Edit
+                            </div>
+                        }
+                        @if (canDeleteRow(row)) {
+                            <div dropdown-item class="menu-item danger" (click)="remove(row)">
+                                <l-icon name="trash" [size]="16" color="inherit" />
+                                Delete
+                            </div>
+                        }
+                    </l-menu>
+                }
+            </ng-template>
+        </l-table>
+    </app-list-card-body>
+
+    <app-list-card-footer>
+        <l-pagination [length]="total()" [(pageIndex)]="pageIndex" [(pageSize)]="pageSize" />
+    </app-list-card-footer>
+</app-list-page-card>

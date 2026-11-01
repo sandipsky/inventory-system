@@ -27,6 +27,8 @@ src/app/auth/                     AuthService, guards, interceptor, login page, 
 src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), header, profile/notification menus
 src/app/features/<module>/        <module>.routes.ts, <module>.model.ts, <module>.service.ts, list + form components
 src/app/features/masters/         one list + one form for units, categories, packings, tax types (MASTERS config)
+src/app/features/party/           one list + one form for vendors and customers (PARTIES config), routed under /purchase and /sales
+src/app/features/accounting/      accounting.routes.ts; account/ is the chart of accounts
 src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator
 src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), breadcrumb
 src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing)
@@ -76,7 +78,7 @@ Add, edit and view open the same form in a near full-screen bottom drawer (`Draw
 
 ### Master data forms
 
-Units, categories, packings and tax types share `MasterList` and `MasterForm`; the route's `data.master` picks the `MASTERS` entry (path, labels, operations, whether it has a `tax_rate`). Add and edit open in a 350px right drawer (`position: 'right'`, `size: '350px'`) with the row itself in `DRAWER_DATA`, so nothing loads; there is no view mode.
+Units, categories, packings and tax types share `MasterList` and `MasterForm`; the route's `data.master` picks the `MASTERS` entry (path, labels, operations, whether it has a `tax_rate`). Add and edit open in a 350px right drawer (`position: 'right'`, `size: '350px'`) with the row itself in `DRAWER_DATA`, so nothing loads; there is no view mode. Vendors and customers (`PartyList`/`PartyForm`, `data.party` picks the `PARTIES` entry) and the chart of accounts (`AccountList`/`AccountForm`) work the same way in a 400px drawer.
 
 ## Checking UI changes
 

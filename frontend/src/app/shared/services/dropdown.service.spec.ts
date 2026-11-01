@@ -25,4 +25,9 @@ describe('DropdownService', () => {
     service.products('inventory', 'purchasable').subscribe();
     http.expectOne(`${environment.apiUrl}/dropdown/products/inventory/purchasable/active`).flush([]);
   });
+
+  it('builds the account path from its filters', () => {
+    service.accounts('party', 'vendor', 'all').subscribe();
+    http.expectOne(`${environment.apiUrl}/dropdown/accountMaster/party/vendor/all`).flush([]);
+  });
 });

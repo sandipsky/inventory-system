@@ -1,0 +1,68 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon [name]="editing ? 'edit' : 'add'" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">{{ title }}</h2>
+                <p class="subtitle">{{ subtitle }}</p>
+            </div>
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <form class="body" [formGroup]="form">
+        @if (lockNote) {
+            <p class="note">
+                <l-icon name="lock" [size]="16" color="inherit" />
+                <span>{{ lockNote }}</span>
+            </p>
+        }
+
+        <l-text-input label="Account Name" placeholder="e.g. Nabil Bank" formControlName="account_name" />
+        <l-text-input label="Account Code" placeholder="e.g. B-001" formControlName="account_code" />
+        <l-select
+            label="Account Type"
+            placeholder="Select account type"
+            bindLabel="name"
+            bindValue="name"
+            groupBy="heading"
+            [items]="typeOptions()"
+            [searchable]="true"
+            formControlName="account_type"
+            (change)="onTypeChange()"
+        />
+
+        <div class="field">
+            <l-select
+                label="Parent Account"
+                [placeholder]="accountType() ? 'No parent' : 'Select an account type first'"
+                bindLabel="name"
+                bindValue="id"
+                [items]="parentOptions()"
+                [searchable]="true"
+                [clearable]="true"
+                formControlName="parent_id"
+            />
+            <p class="hint">Only system accounts of the same type can be a parent.</p>
+        </div>
+
+        <l-textarea label="Remarks" placeholder="Enter remarks" [rows]="3" formControlName="remarks" />
+
+        <div class="status">
+            <l-toggle label="Active" labelPosition="left" formControlName="is_active" />
+            <p class="hint">Inactive accounts are left out of dropdowns.</p>
+        </div>
+    </form>
+
+    <footer class="foot">
+        <l-button variant="outlined" (click)="close()">Cancel</l-button>
+        <l-button variant="primary" [disabled]="saving()" (click)="save()">
+            {{ saving() ? 'Saving…' : editing ? 'Update' : 'Add' }}
+        </l-button>
+    </footer>
+</div>

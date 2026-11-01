@@ -1,0 +1,60 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.action {
+  l-icon {
+    display: inline-flex;
+  }
+}
+
+.table {
+  ::ng-deep td {
+    height: 52px;
+    vertical-align: middle;
+  }
+
+  // The name reads as a link that opens the edit drawer.
+  .link ::ng-deep .btn {
+    padding: 0;
+    border: 0;
+    color: var(--info);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      background: transparent;
+      color: var(--accent-dark);
+    }
+  }
+
+  .more {
+    display: inline-flex;
+
+    ::ng-deep .btn {
+      padding: 4px;
+      color: var(--text-secondary);
+    }
+
+    l-icon {
+      display: inline-flex;
+    }
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+
+    l-icon {
+      display: inline-flex;
+    }
+
+    &.danger {
+      color: var(--error);
+    }
+  }
+}
