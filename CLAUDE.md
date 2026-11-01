@@ -19,6 +19,10 @@ Inventory and accounting app: a Spring Boot API (`backend/`) and an Angular web 
 
 The user usually has both servers running in their own terminals. Don't kill them.
 
+## Git
+
+Always work on the `main` branch. Don't create feature branches; commits go on `main` and are pushed to `origin/main`.
+
 ## Frontend layout
 
 ```
