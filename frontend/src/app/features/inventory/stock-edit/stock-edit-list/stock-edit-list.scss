@@ -1,0 +1,14 @@
+.table {
+  // A batch past its expiry date.
+  .expired {
+    color: var(--error);
+  }
+
+  .edit {
+    display: inline-flex;
+
+    l-icon {
+      display: inline-flex;
+    }
+  }
+}

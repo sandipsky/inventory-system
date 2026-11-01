@@ -1,0 +1,78 @@
+<app-list-page-card>
+    <app-list-card-title>
+        <l-filter
+            class="filter"
+            searchBy="product.name"
+            [filterColumns]="filterColumns"
+            (filterChange)="onFilterChange($event)"
+        />
+
+        <l-segmented-control
+            class="calendar"
+            size="md"
+            name="calendar"
+            aria-label="Calendar system"
+            [options]="calendarOptions"
+            [(ngModel)]="calendar"
+        />
+
+        <l-button card-actions class="action" variant="outlined" (click)="print()">
+            <l-icon name="printer" [size]="18" color="inherit" />
+            Print
+        </l-button>
+
+        <l-button card-actions class="action" variant="outlined" [disabled]="exporting()" (click)="exportList()">
+            <l-icon name="download" [size]="18" color="inherit" />
+            {{ exporting() ? 'Exporting…' : 'Export' }}
+        </l-button>
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <l-table
+            class="table"
+            rowKey="id"
+            [columns]="columns()"
+            [data]="rows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+            [serverSort]="true"
+            [(sort)]="sort"
+            (sortChange)="resetPage()"
+        >
+            <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+            <ng-template lTableCell="product_name" let-row>
+                @if (canEdit()) {
+                    <l-button class="link" variant="ghost" size="sm" (click)="openForm(row)">{{ row.product_name }}</l-button>
+                } @else {
+                    {{ row.product_name || '-' }}
+                }
+            </ng-template>
+
+            <ng-template lTableCell="batch_no" let-row>{{ batchName(row.batch_no) }}</ng-template>
+
+            <ng-template lTableCell="expiry_date" let-row>
+                <app-date-text [class.expired]="isExpired(row.expiry_date)" [date]="row.expiry_date" [calendar]="calendar()" />
+            </ng-template>
+
+            <ng-template lTableCell="quantity" let-row>
+                <strong>{{ row.quantity }}</strong>
+            </ng-template>
+
+            <ng-template lTableCell="cost_price" let-row>{{ row.cost_price | amount }}</ng-template>
+            <ng-template lTableCell="selling_price" let-row>{{ row.selling_price | amount }}</ng-template>
+            <ng-template lTableCell="mrp" let-row>{{ row.mrp | amount }}</ng-template>
+
+            <ng-template lTableCell="actions" let-row>
+                <l-button class="edit" variant="outlined" size="sm" [attr.aria-label]="'Edit stock of ' + row.product_name" (click)="openForm(row)">
+                    <l-icon name="edit" [size]="16" color="inherit" />
+                    Edit
+                </l-button>
+            </ng-template>
+        </l-table>
+    </app-list-card-body>
+
+    <app-list-card-footer>
+        <l-pagination [length]="total()" [(pageIndex)]="pageIndex" [(pageSize)]="pageSize" />
+    </app-list-card-footer>
+</app-list-page-card>

@@ -1,0 +1,66 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon name="edit" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">Edit Stock</h2>
+                <p class="subtitle">Overwrite this batch's quantity, prices and expiry date</p>
+            </div>
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <form class="body" [formGroup]="form">
+        <p class="note">
+            <l-icon name="warning" [size]="16" color="inherit" />
+            <span>Stock edit sets the figures directly and keeps no history. For a counted difference, breakage or loss, record a stock adjustment instead.</span>
+        </p>
+
+        <dl class="record">
+            <div class="item">
+                <dt>Product</dt>
+                <dd>{{ batch.product_name || '-' }}</dd>
+            </div>
+            <div class="item">
+                <dt>Batch</dt>
+                <dd>{{ batchLabel }}</dd>
+            </div>
+        </dl>
+
+        <div class="field">
+            <div class="row">
+                <l-number-input label="Quantity" placeholder="0" [decimalPlaces]="3" formControlName="quantity" />
+                <l-date-input
+                    label="Expiry Date"
+                    placeholder="YYYY/MM/DD"
+                    format="YYYY/MM/DD"
+                    [calendar]="calendar"
+                    [clearable]="true"
+                    formControlName="expiry_date"
+                />
+            </div>
+            <p class="hint">{{ batch.quantity }} in stock now.</p>
+        </div>
+
+        <div class="row">
+            <l-number-input label="Cost Price" placeholder="0.00" [decimalPlaces]="2" formControlName="cost_price" />
+            <l-number-input label="Selling Price" placeholder="0.00" [decimalPlaces]="2" formControlName="selling_price" />
+        </div>
+
+        <div class="row">
+            <l-number-input label="MRP" placeholder="0.00" [decimalPlaces]="2" formControlName="mrp" />
+        </div>
+    </form>
+
+    <footer class="foot">
+        <l-button variant="outlined" (click)="close()">Cancel</l-button>
+        <l-button variant="primary" [disabled]="saving()" (click)="save()">
+            {{ saving() ? 'Saving…' : 'Update' }}
+        </l-button>
+    </footer>
+</div>

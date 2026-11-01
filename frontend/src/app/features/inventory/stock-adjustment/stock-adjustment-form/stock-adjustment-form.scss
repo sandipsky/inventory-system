@@ -1,0 +1,26 @@
+// The adjustment number at the end of the header row, where documents show their party card.
+.doc-no {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+
+  .label {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+}
+
+// In view mode the direction reads in colour: green adds stock, red takes it away.
+.lines .type {
+  &.in ::ng-deep .view-value {
+    color: var(--success);
+    font-weight: 500;
+  }
+
+  &.out ::ng-deep .view-value {
+    color: var(--error);
+    font-weight: 500;
+  }
+}

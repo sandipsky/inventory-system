@@ -29,6 +29,11 @@ export const routes: Routes = [
                 loadChildren: () => import('./features/sales/sales.routes').then(m => m.SALES_ROUTES),
             },
             {
+                path: 'inventory',
+                data: { breadcrumb: 'Inventory' },
+                loadChildren: () => import('./features/inventory/inventory.routes').then(m => m.INVENTORY_ROUTES),
+            },
+            {
                 path: 'accounting',
                 data: { breadcrumb: 'Accounting' },
                 loadChildren: () => import('./features/accounting/accounting.routes').then(m => m.ACCOUNTING_ROUTES),

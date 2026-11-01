@@ -1,0 +1,6 @@
+.table {
+  // A batch past its expiry date.
+  .expired {
+    color: var(--error);
+  }
+}

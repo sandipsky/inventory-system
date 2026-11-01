@@ -1,5 +1,5 @@
 import { BatchStock } from '../models/product.model';
-import { batchName, batchOptions, firstBatch } from './batch';
+import { batchName, batchOptions, firstBatch, isExpired } from './batch';
 
 function batch(batch_id: number, batch_no: string | null, available_quantity: number, expiry_date: string | null): BatchStock {
   return { batch_id, batch_no, expiry_date, available_quantity, cost_price: 40, selling_price: 50, mrp: 55 };
@@ -9,6 +9,13 @@ describe('batch helpers', () => {
   it('names the default batch', () => {
     expect(batchName(null)).toBe('Default batch');
     expect(batchName('B1')).toBe('B1');
+  });
+
+  it('expires a batch from the day after its expiry date', () => {
+    const today = new Date(2026, 10, 1);
+    expect(isExpired('2026-10-31', today)).toBe(true);
+    expect(isExpired('2026-11-01', today)).toBe(false);
+    expect(isExpired(null, today)).toBe(false);
   });
 
   it('labels options with their stock', () => {

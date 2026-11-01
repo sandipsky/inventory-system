@@ -1,9 +1,15 @@
 import { DropdownItem } from '../models/api.model';
 import { BatchStock } from '../models/product.model';
+import { toIsoDate } from './date';
 
 /** A batch's number, or `Default batch` for the product's default one (`batch_id` 0, no number). */
 export function batchName(batchNo: string | null | undefined): string {
   return batchNo || 'Default batch';
+}
+
+/** Whether a `YYYY-MM-DD` expiry date is before `today`. A batch with no date never expires. */
+export function isExpired(expiryDate: string | null | undefined, today = new Date()): boolean {
+  return !!expiryDate && expiryDate < toIsoDate(today);
 }
 
 /** Batch picker options: `B1 · 15 in stock`. */
