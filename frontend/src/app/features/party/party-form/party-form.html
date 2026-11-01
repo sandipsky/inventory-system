@@ -2,11 +2,11 @@
     <header class="head">
         <div class="heading">
             <span class="badge" aria-hidden="true">
-                <l-icon [name]="editing ? 'edit' : 'add'" [size]="18" color="inherit" />
+                <l-icon [name]="icon()" [size]="18" color="inherit" />
             </span>
             <div class="text">
-                <h2 class="title">{{ title }}</h2>
-                <p class="subtitle">{{ subtitle }}</p>
+                <h2 class="title">{{ title() }}</h2>
+                <p class="subtitle">{{ subtitle() }}</p>
             </div>
         </div>
 
@@ -15,28 +15,66 @@
         </l-button>
     </header>
 
-    <form class="body" [formGroup]="form">
-        <l-text-input
-            label="Name"
-            [placeholder]="'Enter ' + config.singular.toLowerCase() + ' name'"
-            formControlName="name"
-        />
-        <l-text-input label="Registration Number" placeholder="PAN or VAT number" formControlName="registration_number" />
-        <l-text-input label="Contact" placeholder="Phone number" formControlName="contact" />
-        <l-email-input label="Email" placeholder="name@example.com" formControlName="email" />
-        <l-text-input label="Address" placeholder="Enter address" formControlName="address" />
-        <l-textarea label="Remarks" placeholder="Enter remarks" [rows]="3" formControlName="remarks" />
+    <div class="body">
+        <l-skeleton [visible]="loading()">
+            <form class="sections" [class.view]="readonly()" [formGroup]="form">
+                <div class="column">
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Basic Details</h3>
+                        <div class="grid">
+                            <l-text-input
+                                class="wide"
+                                label="Name"
+                                [placeholder]="'Enter ' + config.singular.toLowerCase() + ' name'"
+                                [viewMode]="readonly()"
+                                formControlName="name"
+                            />
+                            <l-text-input
+                                label="Registration Number"
+                                placeholder="PAN or VAT number"
+                                [viewMode]="readonly()"
+                                formControlName="registration_number"
+                            />
+                            <l-text-input label="Contact" placeholder="Phone number" [viewMode]="readonly()" formControlName="contact" />
+                            <l-email-input label="Email" placeholder="name@example.com" [viewMode]="readonly()" formControlName="email" />
+                            <l-text-input class="wide" label="Address" placeholder="Enter address" [viewMode]="readonly()" formControlName="address" />
+                        </div>
+                    </l-card>
 
-        <div class="status">
-            <l-toggle label="Active" labelPosition="left" formControlName="is_active" />
-            <p class="hint">Inactive {{ config.plural.toLowerCase() }} are left out of dropdowns.</p>
-        </div>
-    </form>
+                    <l-textarea label="Remarks" placeholder="Enter remarks" [rows]="2" [viewMode]="readonly()" formControlName="remarks" />
+                </div>
+
+                <div class="column">
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">{{ config.singular }} Settings</h3>
+                        <div class="toggles">
+                            <l-toggle label="Active" labelPosition="left" [viewMode]="readonly()" formControlName="is_active" />
+                        </div>
+                        <p class="hint">Inactive {{ config.plural.toLowerCase() }} are left out of dropdowns.</p>
+                        <p class="hint">
+                            Each {{ config.singular.toLowerCase() }} has its own account in the chart of accounts,
+                            named after it and renamed whenever it is saved.
+                        </p>
+                    </l-card>
+                </div>
+            </form>
+        </l-skeleton>
+    </div>
 
     <footer class="foot">
-        <l-button variant="outlined" (click)="close()">Cancel</l-button>
-        <l-button variant="primary" [disabled]="saving()" (click)="save()">
-            {{ saving() ? 'Saving…' : editing ? 'Update' : 'Add' }}
-        </l-button>
+        @if (readonly()) {
+            <l-button variant="outlined" (click)="close()">Close</l-button>
+            @if (canEdit()) {
+                <l-button variant="primary" [disabled]="loading()" (click)="startEdit()">
+                    <l-icon name="edit" [size]="18" color="inherit" />
+                    Edit
+                </l-button>
+            }
+        } @else {
+            <l-button variant="outlined" (click)="close()">Cancel</l-button>
+            <l-button variant="primary" [disabled]="saving() || loading()" (click)="save()">
+                {{ saving() ? 'Saving…' : mode() === 'add' ? 'Add' : 'Update' }}
+            </l-button>
+        }
     </footer>
 </div>

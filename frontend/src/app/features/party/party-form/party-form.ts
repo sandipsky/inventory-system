@@ -1,30 +1,36 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   Button,
+  Card,
   DRAWER_DATA,
   DrawerRef,
   EmailInput,
   Icon,
+  IconName,
   NotificationService,
+  Skeleton,
   TextInput,
   Textarea,
   Toggle,
 } from '@lumen-ui/angular';
 import { finalize } from 'rxjs';
+import { AuthService } from '../../../auth/auth.service';
 import { apiErrorMessage } from '../../../shared/utils/api-error';
-import { PARTIES, PartyFormData, PartyPayload } from '../party.model';
+import { PARTIES, Party, PartyFormData, PartyFormMode, PartyPayload } from '../party.model';
 import { PartyService } from '../party.service';
 
+const ICONS: Record<PartyFormMode, IconName> = { add: 'add', edit: 'edit', view: 'eye' };
+
 /**
- * Add or edit form for a vendor or customer, opened in a right drawer from PartyList. The
- * record to edit comes with DRAWER_DATA, so there is nothing to load. Closes with `true`
+ * Vendor or customer form, opened in a near full-screen bottom drawer from PartyList in one of
+ * three modes (see PartyFormData). Edit and view load the party by id. Closes with `true`
  * once saved.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Button, EmailInput, Icon, ReactiveFormsModule, TextInput, Textarea, Toggle],
+  imports: [Button, Card, EmailInput, Icon, ReactiveFormsModule, Skeleton, TextInput, Textarea, Toggle],
   selector: 'app-party-form',
   styleUrl: './party-form.scss',
   templateUrl: './party-form.html',
@@ -32,6 +38,7 @@ import { PartyService } from '../party.service';
 export class PartyForm {
   private readonly drawerRef = inject<DrawerRef<PartyForm, boolean>>(DrawerRef, { optional: true });
   private readonly data = inject<PartyFormData | null>(DRAWER_DATA, { optional: true });
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly partyService = inject(PartyService);
@@ -39,28 +46,53 @@ export class PartyForm {
 
   readonly kind = this.data?.kind ?? 'vendor';
   readonly config = PARTIES[this.kind];
-  private readonly record = this.data?.record;
-  readonly editing = this.record !== undefined;
+  readonly mode = signal<PartyFormMode>(this.data?.mode ?? 'add');
+  readonly id = signal<number | undefined>(this.data?.id);
 
-  readonly title = `${this.editing ? 'Edit' : 'Add'} ${this.config.singular}`;
-  readonly subtitle = this.editing
-    ? `Update the details of this ${this.config.singular.toLowerCase()}`
-    : `Provide the details of the new ${this.config.singular.toLowerCase()}`;
+  readonly readonly = computed(() => this.mode() === 'view');
+  readonly canEdit = computed(() => this.auth.hasOperation(`Edit${this.config.operation}`));
+  readonly icon = computed(() => ICONS[this.mode()]);
+  readonly title = computed(() => {
+    const singular = this.config.singular;
+    return { add: `Add ${singular}`, edit: `Edit ${singular}`, view: singular }[this.mode()];
+  });
+  readonly subtitle = computed(() => {
+    const singular = this.config.singular.toLowerCase();
+    return {
+      add: `Provide the details of the new ${singular}`,
+      edit: `Update the details of this ${singular}`,
+      view: `Details of this ${singular}`,
+    }[this.mode()];
+  });
 
+  readonly loading = signal(false);
   readonly saving = signal(false);
 
   readonly form = this.fb.group({
-    name: this.fb.control(this.record?.name ?? '', Validators.required),
-    registration_number: this.fb.control(this.record?.registration_number ?? ''),
-    contact: this.fb.control(this.record?.contact ?? ''),
-    email: this.fb.control(this.record?.email ?? ''),
-    address: this.fb.control(this.record?.address ?? ''),
-    remarks: this.fb.control(this.record?.remarks ?? ''),
-    is_active: this.fb.control(this.record?.is_active ?? true),
+    name: this.fb.control('', Validators.required),
+    registration_number: this.fb.control(''),
+    contact: this.fb.control(''),
+    email: this.fb.control(''),
+    address: this.fb.control(''),
+    remarks: this.fb.control(''),
+    is_active: this.fb.control(true),
   });
 
+  constructor() {
+    const id = this.id();
+    if (this.mode() !== 'add' && id) {
+      this.load(id);
+    } else {
+      this.mode.set('add');
+    }
+  }
+
+  startEdit() {
+    this.mode.set('edit');
+  }
+
   save() {
-    if (this.saving()) return;
+    if (this.saving() || this.loading()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.notification.warn('Missing details', 'Fill in the fields highlighted in red.');
@@ -79,8 +111,10 @@ export class PartyForm {
     };
 
     const singular = this.config.singular;
-    const request = this.record
-      ? this.partyService.update(this.kind, this.record.id, payload)
+    const id = this.id();
+    const editing = this.mode() === 'edit' && id !== undefined;
+    const request = editing
+      ? this.partyService.update(this.kind, id, payload)
       : this.partyService.create(this.kind, payload);
 
     this.saving.set(true);
@@ -91,7 +125,7 @@ export class PartyForm {
       )
       .subscribe({
         next: response => {
-          this.notification.success(this.editing ? `${singular} updated` : `${singular} added`, response.message);
+          this.notification.success(editing ? `${singular} updated` : `${singular} added`, response.message);
           this.drawerRef?.close(true);
         },
         error: (error: unknown) => this.notification.error('Could not save', apiErrorMessage(error)),
@@ -100,5 +134,35 @@ export class PartyForm {
 
   close() {
     this.drawerRef?.close(false);
+  }
+
+  private load(id: number) {
+    this.loading.set(true);
+    this.partyService
+      .get(this.kind, id)
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: party => this.fill(party),
+        error: (error: unknown) => {
+          this.notification.error(`Could not load the ${this.config.singular.toLowerCase()}`, apiErrorMessage(error));
+          this.close();
+        },
+      });
+  }
+
+  private fill(party: Party) {
+    this.form.patchValue({
+      name: party.name,
+      registration_number: party.registration_number ?? '',
+      contact: party.contact ?? '',
+      email: party.email ?? '',
+      address: party.address ?? '',
+      remarks: party.remarks ?? '',
+      is_active: party.is_active,
+    });
+    this.form.markAsPristine();
   }
 }

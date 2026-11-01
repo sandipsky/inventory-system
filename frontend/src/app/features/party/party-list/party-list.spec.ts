@@ -2,10 +2,13 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
+import { DrawerService } from '@lumen-ui/angular';
+import { of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../auth/auth.service';
 import { testUser } from '../../../auth/auth.testing';
 import { Party, PartyKind } from '../party.model';
+import { PartyForm } from '../party-form/party-form';
 import { PartyList } from './party-list';
 
 const ROW: Party = {
@@ -62,7 +65,7 @@ describe('PartyList', () => {
     await fixture.whenStable();
 
     expect(component.rows()).toEqual([ROW]);
-    expect(component.columns().map(column => column.key)).toEqual([
+    expect(component.columns.map(column => column.key)).toEqual([
       'sn', 'name', 'registration_number', 'contact', 'email', 'address', 'is_active', 'actions',
     ]);
     expect(text()).toContain('Add Vendor');
@@ -93,14 +96,30 @@ describe('PartyList', () => {
     req.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10 });
   });
 
-  it('shows Add and row actions only with the matching permissions', async () => {
+  it('shows Add, Edit and Delete only with the matching permissions', async () => {
     await setup('customer', ['ViewCustomer']);
     nextRequest('customer').flush({ content: [ROW], totalElements: 1, totalPages: 1, number: 0, size: 10 });
     await fixture.whenStable();
 
     expect(text()).not.toContain('Add Customer');
-    expect(component.columns().some(column => column.key === 'actions')).toBe(false);
-    expect((fixture.nativeElement as HTMLElement).querySelector('l-table .link')).toBeNull();
+    expect(component.canEdit()).toBe(false);
+    expect(component.canDelete()).toBe(false);
+    // The name still opens the customer read-only.
+    expect((fixture.nativeElement as HTMLElement).querySelector('l-table .link')?.textContent).toContain(ROW.name);
+  });
+
+  it('opens the form in a bottom drawer in the mode asked for', async () => {
+    await setup('vendor', ['ViewVendor', 'EditVendor']);
+    nextRequest('vendor').flush({ content: [ROW], totalElements: 1, totalPages: 1, number: 0, size: 10 });
+    const open = vi.spyOn(TestBed.inject(DrawerService), 'open').mockReturnValue({ afterClosed: () => of(false) } as never);
+
+    component.openForm('view', ROW.id);
+    expect(open).toHaveBeenCalledWith(PartyForm, expect.objectContaining({
+      data: { kind: 'vendor', mode: 'view', id: ROW.id },
+      position: 'bottom',
+      panelClass: 'drawer-sheet',
+      disableClose: true,
+    }));
   });
 
   it('shows the server message when loading fails', async () => {

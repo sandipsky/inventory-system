@@ -41,8 +41,13 @@ export interface PartyPayload {
   is_active: boolean;
 }
 
-/** Data handed to the party form through DRAWER_DATA. Without a `record` the form adds one. */
+/** How the party form was opened. `view` can switch to `edit` from inside the drawer. */
+export type PartyFormMode = 'add' | 'edit' | 'view';
+
+/** Data handed to the party form through DRAWER_DATA. */
 export interface PartyFormData {
   kind: PartyKind;
-  record?: Party;
+  mode: PartyFormMode;
+  /** Party id; required for `edit` and `view`. */
+  id?: number;
 }

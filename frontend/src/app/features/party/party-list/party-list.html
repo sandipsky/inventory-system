@@ -8,7 +8,7 @@
         />
 
         @if (canCreate()) {
-            <l-button card-actions class="action" variant="primary" (click)="openForm()">
+            <l-button card-actions class="action" variant="primary" (click)="openForm('add')">
                 <l-icon name="add" [size]="18" color="inherit" />
                 Add {{ config.singular }}
             </l-button>
@@ -19,7 +19,7 @@
         <l-table
             class="table"
             rowKey="id"
-            [columns]="columns()"
+            [columns]="columns"
             [data]="rows()"
             [loading]="loading()"
             [emptyText]="emptyText()"
@@ -30,11 +30,7 @@
             <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
 
             <ng-template lTableCell="name" let-row>
-                @if (canEdit()) {
-                    <l-button class="link" variant="ghost" size="sm" (click)="openForm(row)">{{ row.name }}</l-button>
-                } @else {
-                    {{ row.name }}
-                }
+                <l-button class="link" variant="ghost" size="sm" (click)="openForm('view', row.id)">{{ row.name }}</l-button>
             </ng-template>
 
             <ng-template lTableCell="registration_number" let-row>{{ row.registration_number || '-' }}</ng-template>
@@ -54,8 +50,12 @@
                         <l-icon name="more" [size]="16" color="inherit" />
                     </l-button>
 
+                    <div dropdown-item class="menu-item" (click)="openForm('view', row.id)">
+                        <l-icon name="eye" [size]="16" color="inherit" />
+                        View
+                    </div>
                     @if (canEdit()) {
-                        <div dropdown-item class="menu-item" (click)="openForm(row)">
+                        <div dropdown-item class="menu-item" (click)="openForm('edit', row.id)">
                             <l-icon name="edit" [size]="16" color="inherit" />
                             Edit
                         </div>

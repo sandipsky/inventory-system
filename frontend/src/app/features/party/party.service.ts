@@ -17,6 +17,10 @@ export class PartyService {
     return this.http.get<Page<Party>>(this.url(kind), { params });
   }
 
+  get(kind: PartyKind, id: number): Observable<Party> {
+    return this.http.get<Party>(`${this.url(kind)}/${id}`);
+  }
+
   create(kind: PartyKind, party: PartyPayload): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(this.url(kind), party);
   }

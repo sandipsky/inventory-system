@@ -7,10 +7,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-
-  l-icon {
-    display: inline-flex;
-  }
+  background: var(--bg-light);
 
   .head,
   .foot {
@@ -18,7 +15,12 @@
     align-items: center;
     flex: 0 0 auto;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 12px 20px;
+    background: var(--bg-lightest);
+  }
+
+  l-icon {
+    display: inline-flex;
   }
 
   .head {
@@ -70,39 +72,78 @@
   }
 
   .body {
-    display: flex;
     flex: 1 1 auto;
-    flex-direction: column;
-    gap: 16px;
     min-height: 0;
     overflow: auto;
-    padding: 16px;
+    padding: 16px 20px;
   }
 
-  .status {
-    padding: 10px 12px;
-    border: 1px solid var(--separator);
-    border-radius: 8px;
-    background: var(--bg-light);
+  // Details on the left; settings in a narrower column on the right.
+  .sections {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    align-items: start;
+    gap: 16px;
 
-    // Label on the left, switch on the right edge.
-    ::ng-deep label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
+    @media (max-width: 1100px) {
+      grid-template-columns: minmax(0, 1fr);
     }
+  }
 
-    ::ng-deep .control-label {
-      font-weight: 500;
-    }
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
 
-    .hint {
-      margin-top: 4px;
-      color: var(--text-tertiary);
-      font-size: 12px;
-      line-height: 16px;
+  .section-title {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px 16px;
+
+    .wide {
+      grid-column: span 2;
     }
+  }
+
+  .toggles {
+    l-toggle {
+      display: block;
+      padding: 8px 0;
+
+      // Label on the left, switch on the right edge.
+      ::ng-deep label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      ::ng-deep .control-label {
+        font-weight: 400;
+      }
+    }
+  }
+
+  .hint {
+    margin-top: 8px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  // View mode: Lumen marks required labels even when they only display a value.
+  .sections.view ::ng-deep .required-asterisk {
+    display: none;
   }
 
   .foot {

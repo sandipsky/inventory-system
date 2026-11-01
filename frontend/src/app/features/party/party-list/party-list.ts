@@ -25,7 +25,7 @@ import { AuthService } from '../../../auth/auth.service';
 import { LIST_PAGE_CARD } from '../../../shared/components/list-page-card/list-page-card';
 import { ListParams } from '../../../shared/models/api.model';
 import { apiErrorMessage } from '../../../shared/utils/api-error';
-import { PARTIES, Party, PartyFormData, PartyKind } from '../party.model';
+import { PARTIES, Party, PartyFormData, PartyFormMode, PartyKind } from '../party.model';
 import { PartyService } from '../party.service';
 import { PartyForm } from '../party-form/party-form';
 
@@ -36,8 +36,8 @@ const SORT_FIELDS: Record<string, string> = {
 };
 
 /**
- * List page shared by vendors and customers; the route's `data.party` picks which. Add and
- * edit open PartyForm in a right drawer.
+ * List page shared by vendors and customers; the route's `data.party` picks which. Add, edit
+ * and view open PartyForm in a bottom drawer.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -78,7 +78,7 @@ export class PartyList {
     },
   ];
 
-  readonly columns = computed<TableColumn[]>(() => [
+  readonly columns: TableColumn[] = [
     { key: 'sn', header: 'S.N', width: '56px' },
     { key: 'name', header: 'Name', sortable: true },
     { key: 'registration_number', header: 'Registration No.', sortable: true },
@@ -86,10 +86,8 @@ export class PartyList {
     { key: 'email', header: 'Email', sortable: true },
     { key: 'address', header: 'Address', sortable: true },
     { key: 'is_active', header: 'Status', sortable: true, width: '120px' },
-    ...(this.canEdit() || this.canDelete()
-      ? [{ key: 'actions', header: '', width: '56px', align: 'center' } as const]
-      : []),
-  ]);
+    { key: 'actions', header: '', width: '56px', align: 'center' },
+  ];
 
   readonly filters = signal<FilterChange[]>([]);
   readonly sort = signal<TableSort | null>(null);
@@ -157,12 +155,16 @@ export class PartyList {
     return String(this.pageIndex() * this.pageSize() + index + 1).padStart(2, '0');
   }
 
-  /** Opens the form in a right drawer: adds a party, or edits `record`. */
-  openForm(record?: Party) {
+  /** Opens the party form in a near full-screen bottom drawer. `id` is required for edit and view. */
+  openForm(mode: PartyFormMode, id?: number) {
     const ref = this.drawer.open<PartyForm, PartyFormData, boolean>(PartyForm, {
-      data: { kind: this.kind, record },
-      position: 'right',
-      size: '400px',
+      data: { kind: this.kind, mode, id },
+      position: 'bottom',
+      size: 'calc(100vh - 48px)',
+      panelClass: 'drawer-sheet',
+      // Only the form's own buttons close it, so a stray backdrop click never throws away edits
+      // (view mode can switch to edit in place).
+      disableClose: true,
     });
     ref.afterClosed().subscribe(saved => {
       if (saved) this.reload();
