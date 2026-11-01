@@ -10,7 +10,9 @@ import { SIDEBAR_SECTIONS } from './sidebar.data';
 /** Every operation the menu refers to, i.e. what the admin role has. */
 const ALL_OPERATIONS = SIDEBAR_SECTIONS.flatMap(section =>
   section.items.flatMap(item => [item.operation, ...(item.children ?? []).map(child => child.operation)]),
-).filter((operation): operation is string => !!operation);
+)
+  .flat()
+  .filter((operation): operation is string => !!operation);
 
 describe('Sidebar', () => {
   let component: Sidebar;
@@ -56,6 +58,12 @@ describe('Sidebar', () => {
     // Links without an operation stay; a group keeps only its permitted children.
     expect(items.map(item => item.label)).toEqual(['Dashboard', 'Purchase', 'Products', 'Reports']);
     expect(items[1].children?.map(child => child.label)).toEqual(['Purchase Entry']);
+  });
+
+  it('should show a link that needs any one of several operations', () => {
+    auth.user.set(testUser({ operations: ['ViewCustomerPayment'] }));
+    const accounting = component.sections().flatMap(section => section.items).find(item => item.label === 'Accounting');
+    expect(accounting?.children?.map(child => child.label)).toEqual(['Payments']);
   });
 
   it('should hide every protected link while no user is loaded', () => {

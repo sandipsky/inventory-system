@@ -27,7 +27,7 @@ export class Sidebar {
    * dropped, and so is a group left with no children. Links without an operation always show.
    */
   readonly sections = computed<SidebarSection[]>(() => {
-    const allowed = (operation?: string) => !operation || this.auth.hasOperation(operation);
+    const allowed = (operation?: string | string[]) => !operation || this.auth.hasOperation(operation);
 
     return SIDEBAR_SECTIONS.map(section => ({
       ...section,

@@ -1,3 +1,4 @@
+// Summary card of the document forms: InvoiceSummaryCard and SummaryCard.
 :host {
   display: block;
 }
@@ -52,6 +53,13 @@
         color: var(--text-primary);
         font-weight: 600;
       }
+    }
+
+    // A figure that blocks saving, e.g. more settled than paid.
+    &.error .value {
+      border-color: var(--error);
+      background: var(--error-bg);
+      color: var(--error);
     }
   }
 

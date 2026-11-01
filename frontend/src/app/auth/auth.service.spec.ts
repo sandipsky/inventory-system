@@ -48,6 +48,9 @@ describe('AuthService', () => {
     expect(service.user()?.role).toBe('Administrator');
     expect(service.hasOperation('ViewPurchaseEntry')).toBe(true);
     expect(service.hasOperation('DeletePurchaseEntry')).toBe(false);
+    // Several: any one of them is enough.
+    expect(service.hasOperation(['DeletePurchaseEntry', 'ViewPurchaseEntry'])).toBe(true);
+    expect(service.hasOperation(['DeletePurchaseEntry', 'EditPurchaseEntry'])).toBe(false);
   });
 
   it('loads the user only once', () => {

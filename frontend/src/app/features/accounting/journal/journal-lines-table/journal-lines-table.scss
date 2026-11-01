@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+l-icon {
+  display: inline-flex;
+}
+
+.lines {
+  ::ng-deep td {
+    vertical-align: middle;
+  }
+
+  .amount {
+    display: block;
+
+    ::ng-deep .form-control,
+    ::ng-deep .view-value {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .remove ::ng-deep .btn {
+    color: var(--text-tertiary);
+
+    &:hover {
+      color: var(--error);
+    }
+  }
+
+  // Required fields show a red border; the message under each cell would break the row.
+  ::ng-deep .alert {
+    display: none;
+  }
+}
+
+.totals {
+  margin-top: 12px;
+}
+
+@media print {
+  .lines .remove {
+    display: none;
+  }
+}

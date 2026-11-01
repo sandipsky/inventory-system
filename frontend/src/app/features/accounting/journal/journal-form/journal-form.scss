@@ -1,0 +1,13 @@
+// The journal number at the end of the header row, where documents show their party card.
+.doc-no {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+
+  .label {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+}

@@ -46,13 +46,13 @@ public class AccountingReportController {
     }
 
     @GetMapping("/receivable")
-    @RequiresOperation({ "ViewCustomerPayment", "ViewAccount" })
+    @RequiresOperation({ "ViewCustomerPayment", "ViewAccount", "CreatePaymentAdjustment" })
     public List<OutstandingInvoiceReportRowDTO> getReceivableReport() {
         return service.getReceivableReport();
     }
 
     @GetMapping("/payable")
-    @RequiresOperation({ "ViewVendorPayment", "ViewAccount" })
+    @RequiresOperation({ "ViewVendorPayment", "ViewAccount", "CreatePaymentAdjustment" })
     public List<OutstandingInvoiceReportRowDTO> getPayableReport() {
         return service.getPayableReport();
     }

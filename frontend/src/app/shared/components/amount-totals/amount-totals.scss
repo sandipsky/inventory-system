@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+
+  .total {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 160px;
+
+    dt {
+      color: var(--text-primary);
+      font-weight: 500;
+      line-height: 20px;
+    }
+
+    dd {
+      padding: 6px 8px;
+      border: 1px solid var(--separator);
+      border-radius: 8px;
+      background: var(--bg-light);
+      color: var(--text-primary);
+      font-weight: 600;
+      line-height: 20px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &.error dd {
+      border-color: var(--error);
+      background: var(--error-bg);
+      color: var(--error);
+    }
+  }
+
+  // View mode: plain text like Lumen's view-mode fields (and the invoice summary card).
+  &.view .total {
+    dt {
+      color: var(--text-quaternary);
+    }
+
+    dd {
+      padding: 0;
+      border: 0;
+      background: none;
+      text-align: left;
+    }
+  }
+}

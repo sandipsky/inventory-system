@@ -3,16 +3,21 @@ import com.sandipsky.inventory_system.features.accounting.journal.dtos.MasterJou
 import com.sandipsky.inventory_system.features.accounting.journal.entities.MasterJournalEntry;
 import com.sandipsky.inventory_system.features.accounting.journal.services.JournalEntryService;
 
-import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import com.sandipsky.inventory_system.common.dto.ApiResponse;
 import com.sandipsky.inventory_system.common.util.ResponseUtil;
+import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import com.sandipsky.inventory_system.security.RequiresOperation;
 
+// Manual journal entries only; the ones purchases, sales, returns, payments and the
+// opening balance post are changed through those documents
 @RestController
 @RequestMapping("/journal")
 public class JournalEntryController {
@@ -20,10 +25,25 @@ public class JournalEntryController {
     @Autowired
     private JournalEntryService service;
 
+    @Autowired
+    private DocumentNumberingService documentNumberingService;
+
+    @GetMapping("/generateNumber")
+    @RequiresOperation("CreateJournalEntry")
+    public String generateJournalNumber() {
+        return documentNumberingService.generateJournalNumber();
+    }
+
     @GetMapping()
     @RequiresOperation("ViewJournalEntries")
-    public List<MasterJournalEntryDTO> getPaginatedMasterPurchaseEntrysList() {
-        return service.getAllJournalReport();
+    public Page<MasterJournalEntryDTO> getPaginatedJournalEntries(@RequestParam Map<String, String> params) {
+        return service.getPaginatedJournalEntries(params);
+    }
+
+    @GetMapping("/{id}")
+    @RequiresOperation("ViewJournalEntries")
+    public MasterJournalEntryDTO getJournalEntry(@PathVariable int id) {
+        return service.getJournalEntryById(id);
     }
 
     @PostMapping()

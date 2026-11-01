@@ -36,9 +36,13 @@ export class AuthService {
     return this.getToken() !== null;
   }
 
-  /** Whether the user's role grants a backend operation such as `CreatePurchaseEntry`. */
-  hasOperation(operation: string): boolean {
-    return this.operations().has(operation);
+  /**
+   * Whether the user's role grants a backend operation such as `CreatePurchaseEntry`;
+   * given several, whether it grants any of them.
+   */
+  hasOperation(operation: string | readonly string[]): boolean {
+    const operations = this.operations();
+    return typeof operation === 'string' ? operations.has(operation) : operation.some(name => operations.has(name));
   }
 
   login(credentials: LoginRequest): Observable<AuthUser> {

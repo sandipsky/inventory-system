@@ -1,0 +1,88 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon name="calculator" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">Adjust Payment</h2>
+                <p class="subtitle">Settle invoices with what this payment left unadjusted</p>
+            </div>
+        </div>
+
+        <div class="tools">
+            <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+                <l-icon name="cross" [size]="20" color="inherit" />
+            </l-button>
+        </div>
+    </header>
+
+    <div class="body">
+        <div class="sections">
+            <l-card class="section" padding="md">
+                <dl class="payment">
+                    <div class="item">
+                        <dt>Payment Number</dt>
+                        <dd><l-chip variant="info" size="sm" [dot]="true">{{ payment.system_entry_no | docNo }}</l-chip></dd>
+                    </div>
+                    <div class="item">
+                        <dt>Date</dt>
+                        <dd><app-date-text [date]="payment.date" [calendar]="calendar" /></dd>
+                    </div>
+                    <div class="item">
+                        <dt>{{ payment.type }}</dt>
+                        <dd>{{ partyName }}</dd>
+                    </div>
+                    <div class="item">
+                        <dt>Payment Mode</dt>
+                        <dd>{{ payment.payment_mode_name || '-' }}</dd>
+                    </div>
+                    <div class="item">
+                        <dt>Amount</dt>
+                        <dd>{{ payment.amount | amount }}</dd>
+                    </div>
+                    <div class="item">
+                        <dt>Settled So Far</dt>
+                        <dd>{{ payment.total_adjusted_paid_amount | amount }}</dd>
+                    </div>
+                    @if (payment.narration) {
+                        <div class="item">
+                            <dt>Narration</dt>
+                            <dd>{{ payment.narration }}</dd>
+                        </div>
+                    }
+                </dl>
+            </l-card>
+
+            <l-card class="section" padding="md">
+                <div class="section-head">
+                    <h3 class="section-title">Invoices Due</h3>
+                    @if (rows().length) {
+                        <l-button class="add" variant="outlined-primary" (click)="settleOldestFirst()">
+                            <l-icon name="calculator" [size]="16" color="inherit" />
+                            Settle Oldest First
+                        </l-button>
+                    }
+                </div>
+
+                <app-invoice-settlement
+                    class="lines"
+                    amountHeader="Adjust Now"
+                    [emptyText]="'No invoices due from ' + partyName + '.'"
+                    [rows]="rows()"
+                    [loading]="loading()"
+                    [calendar]="calendar"
+                />
+
+                <app-summary-card [items]="summary()" />
+            </l-card>
+        </div>
+    </div>
+
+    <footer class="foot">
+        <l-button variant="outlined" (click)="close()">Cancel</l-button>
+        <l-button variant="primary" [disabled]="saving() || loading() || !rows().length" (click)="save()">
+            {{ saving() ? 'Adjusting…' : 'Adjust' }}
+        </l-button>
+    </footer>
+</div>

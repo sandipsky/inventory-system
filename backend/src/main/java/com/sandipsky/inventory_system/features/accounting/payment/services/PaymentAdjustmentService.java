@@ -9,13 +9,16 @@ import com.sandipsky.inventory_system.features.accounting.payment.repositories.M
 import com.sandipsky.inventory_system.features.accounting.payment.repositories.PaymentDetailRepository;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sandipsky.inventory_system.common.exception.BadRequestException;
 import com.sandipsky.inventory_system.common.exception.ResourceNotFoundException;
+import com.sandipsky.inventory_system.common.util.MoneyUtil;
 
 @Service
 public class PaymentAdjustmentService {
@@ -29,30 +32,14 @@ public class PaymentAdjustmentService {
     @Autowired
     private AmountDueInvoiceRepository amountDueInvoiceRepository;
 
-    // Payments (advances) whose amount has not been fully allocated to invoices yet
-    public List<MasterPaymentDTO> getPaymentsWithUnadjustedAmount() {
-        return repository.findAllWithUnadjustedAmount().stream()
-                .map(entity -> {
-                    MasterPaymentDTO dto = new MasterPaymentDTO();
-                    dto.setId(entity.getId());
-                    dto.setDate(entity.getDate());
-                    dto.setSystemEntryNo(entity.getSystemEntryNo());
-                    dto.setType(entity.getType());
-                    dto.setAmount(entity.getAmount());
-                    dto.setNarration(entity.getNarration());
-                    dto.setTotalAdjustedPaidAmount(entity.getTotalAdjustedPaidAmount());
-                    dto.setUnadjustedAmount(entity.getUnadjustedAmount());
-                    dto.setTotalPaymentAmount(entity.getTotalPaymentAmount());
-                    if (entity.getVendor() != null) {
-                        dto.setVendorId(entity.getVendor().getId());
-                        dto.setVendorName(entity.getVendor().getName());
-                    }
-                    if (entity.getCustomer() != null) {
-                        dto.setCustomerId(entity.getCustomer().getId());
-                        dto.setCustomerName(entity.getCustomer().getName());
-                    }
-                    return dto;
-                }).toList();
+    @Autowired
+    private PaymentService paymentService;
+
+    // Payments (advances) whose amount has not been fully allocated to invoices yet, paged and
+    // filtered like the payment list. Half a paisa absorbs floating-point leftovers.
+    public Page<MasterPaymentDTO> getPaymentsWithUnadjustedAmount(Map<String, String> params) {
+        return paymentService.findPage(params,
+                (root, query, cb) -> cb.greaterThan(root.get("unadjustedAmount"), 0.005));
     }
 
     // Allocates part of a payment's unadjusted amount against due invoices
@@ -73,18 +60,18 @@ public class PaymentAdjustmentService {
             adjusted += item.getPaidAmount();
         }
 
-        if (adjusted > masterPayment.getUnadjustedAmount()) {
+        if (MoneyUtil.exceeds(adjusted, masterPayment.getUnadjustedAmount())) {
             throw new BadRequestException("Adjusted amount cannot exceed the unadjusted amount of the payment");
         }
 
         for (PaymentDetailDTO item : details) {
             AmountDueInvoice dueInvoice = amountDueInvoiceRepository.findByInvoiceNumber(item.getInvoiceNumber())
                     .orElseThrow(() -> new ResourceNotFoundException("Due Invoice not found: " + item.getInvoiceNumber()));
-            if (dueInvoice.getDueAmount() < item.getPaidAmount()) {
+            if (MoneyUtil.exceeds(item.getPaidAmount(), dueInvoice.getDueAmount())) {
                 throw new BadRequestException("Paid amount exceeds due amount for invoice " + item.getInvoiceNumber());
             }
-            dueInvoice.setPaidAmount(dueInvoice.getPaidAmount() + item.getPaidAmount());
-            dueInvoice.setDueAmount(dueInvoice.getDueAmount() - item.getPaidAmount());
+            dueInvoice.setPaidAmount(MoneyUtil.round2(dueInvoice.getPaidAmount() + item.getPaidAmount()));
+            dueInvoice.setDueAmount(MoneyUtil.round2(dueInvoice.getDueAmount() - item.getPaidAmount()));
             amountDueInvoiceRepository.save(dueInvoice);
 
             PaymentDetail detail = new PaymentDetail();
@@ -97,8 +84,8 @@ public class PaymentAdjustmentService {
             paymentDetailRepository.save(detail);
         }
 
-        masterPayment.setTotalAdjustedPaidAmount(masterPayment.getTotalAdjustedPaidAmount() + adjusted);
-        masterPayment.setUnadjustedAmount(masterPayment.getUnadjustedAmount() - adjusted);
+        masterPayment.setTotalAdjustedPaidAmount(MoneyUtil.round2(masterPayment.getTotalAdjustedPaidAmount() + adjusted));
+        masterPayment.setUnadjustedAmount(MoneyUtil.round2(masterPayment.getUnadjustedAmount() - adjusted));
         return repository.save(masterPayment);
     }
 }

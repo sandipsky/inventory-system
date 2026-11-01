@@ -14,7 +14,7 @@ import { AmountPipe } from '../../pipes/amount.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [AmountPipe, Card, NumberInput, ReactiveFormsModule, Select],
   selector: 'app-invoice-summary-card',
-  styleUrl: './invoice-summary-card.scss',
+  styleUrl: '../../styles/summary-card.scss',
   templateUrl: './invoice-summary-card.html',
 })
 export class InvoiceSummaryCard {

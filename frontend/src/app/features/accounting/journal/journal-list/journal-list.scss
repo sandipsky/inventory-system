@@ -1,0 +1,18 @@
+.table {
+  .remarks {
+    display: -webkit-box;
+    max-width: 320px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  // Dr / Cr tag before the account names.
+  .side {
+    display: inline-block;
+    min-width: 20px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+}

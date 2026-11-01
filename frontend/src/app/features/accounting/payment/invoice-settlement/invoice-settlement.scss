@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+.invoices {
+  ::ng-deep td {
+    vertical-align: middle;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount {
+    display: block;
+
+    ::ng-deep .form-control {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  // More than is due shows a red border; the message under the cell would break the row.
+  ::ng-deep .alert {
+    display: none;
+  }
+}

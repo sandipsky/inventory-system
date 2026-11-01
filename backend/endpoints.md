@@ -114,7 +114,7 @@ Most `GET` list endpoints are **paged**. They accept these query parameters:
 | `pageIndex` | Page number, **starting at 0** | `0` |
 | `pageSize` | Records per page | `25` |
 | `sort` | `field:asc` or `field:desc`; use commas for several, e.g. `sort=name:asc,id:desc` | none |
-| `fromDate`, `toDate` | Inclusive `YYYY-MM-DD` range on the record's `date`. Only lists of dated documents (purchases, sales, returns, payments, journals, stock adjustments) | none |
+| `fromDate`, `toDate` | Inclusive `YYYY-MM-DD` range on the record's `date`. Only lists of dated documents (purchases, sales, returns, payments, payment adjustments, journals, stock adjustments) | none |
 | *any field name* | Filter: "contains", not case-sensitive (a few fields match the whole value; their sections say so) | none |
 
 **Filters** use the record's **internal (camelCase) field names**, not the snake_case JSON names. Use a dot to filter on a linked record:
@@ -126,6 +126,7 @@ GET /purchase?vendor.name=abc&sort=date:desc
 GET /purchase?transactionType=credit        (NOT transaction_type)
 GET /purchase?fromDate=2026-10-01&toDate=2026-10-31
 GET /payment?type=Vendor
+GET /payment?partyName=ram                  → payments of vendors or customers whose name contains "ram"
 ```
 
 > ⚠️ An unknown filter name is **silently ignored**. You get *all* records back, not an error.
@@ -287,6 +288,7 @@ The last part of each path is the **status**. Use `active` for active records on
 | `GET /dropdown/roles/{status}` | Roles |
 | `GET /dropdown/products/{serviceType}/{type}/{status}` | Products. `serviceType` = `inventory` / `service` / `all`; `type` = `purchasable` / `sellable` / `all` |
 | `GET /dropdown/accountMaster/{type}/{partyType}/{status}` | Accounts. `type` = `party` / `nonparty` / `all`; `partyType` = `vendor` / `customer` / `all` |
+| `GET /dropdown/paymentModes` | Active `Cash & Cash Equivalents` accounts (Cash, Petty Cash, banks you add), by name: the `payment_mode_id` choices of a payment |
 | `GET /dropdown/purchase/{vendorId}` | That vendor's purchases, newest first. `name` is the purchase number (`\|PE-000001`). For the reference purchase of a purchase return |
 | `GET /dropdown/sales/{customerId}` | That customer's sales that are **not cancelled**, newest first. `name` is the invoice number (`\|SI-000001`). For the reference invoice of a sales return |
 
@@ -994,7 +996,7 @@ Permissions:
 | Method | Path | What it does |
 |---|---|---|
 | `GET` | `/payment/generateNumber` | Preview the next number (plain text, e.g. `\|P-000001`) |
-| `GET` | `/payment` | Paged list (e.g. `?type=Customer`) |
+| `GET` | `/payment` | Paged list (e.g. `?type=Customer`, `?partyName=ram`) |
 | `GET` | `/payment/{id}` | One payment with the invoices it settled |
 | `POST` | `/payment` | Create |
 | `PUT` | `/payment/{id}` | Update |
@@ -1002,8 +1004,11 @@ Permissions:
 
 Key fields:
 - **`type`** is `Customer` (money in) or `Vendor` (money out). Then send `customer_id` or `vendor_id`.
-- **`payment_mode_id`** is the account the money goes into or comes out of, e.g. the `Cash` account or a bank account from the chart of accounts.
+- **`amount`** must be more than 0.
+- **`payment_mode_id`** is the account the money goes into or comes out of, e.g. the `Cash` account or a bank account from the chart of accounts. `GET /dropdown/paymentModes` lists them.
 - **`paymentDetails`** lists which invoices this payment settles. It can be empty. You can settle them later with [payment adjustment](#payment-adjustment).
+
+In the list, **`partyName`** searches vendor and customer names alike (a payment has one or the other); `vendor.name` would leave customer payments out.
 
 **Step 1: See what a customer owes.** `GET /reports/accounting/receivable`
 
@@ -1037,7 +1042,8 @@ Key fields:
 ```
 
 - If `narration` is empty, it's filled in automatically (`"Payment received from Ram Traders"`).
-- The total of `paid_amount` can't be more than `amount`. Each `paid_amount` can't be more than that invoice's due amount.
+- The total of `paid_amount` can't be more than `amount`. Each `paid_amount` can't be more than that invoice's due amount. Amounts are compared to the paisa, and due, paid and unadjusted amounts are stored rounded to it.
+- **Updating** first takes back everything the payment settled (including what [payment adjustment](#payment-adjustment) added), then applies the `paymentDetails` you send. So send every invoice the payment should still settle; an invoice's available amount is its `due_amount` plus what this payment settled on it.
 
 `GET /payment/1`
 
@@ -1091,8 +1097,10 @@ Permissions: `ViewPaymentAdjustment`, `CreatePaymentAdjustment`
 
 | Method | Path | What it does |
 |---|---|---|
-| `GET` | `/payment-adjustment` | Payments that still have unadjusted money |
+| `GET` | `/payment-adjustment` | Paged list of the payments that still have unadjusted money; same rows, filters (`type`, `partyName`, dates) and sorting as `GET /payment` |
 | `POST` | `/payment-adjustment/{paymentId}` | Apply it to invoices |
+
+Settling needs the party's invoices due, so `CreatePaymentAdjustment` also opens `GET /reports/accounting/receivable` and `/payable`.
 
 `POST /payment-adjustment/1` sends a **list** of invoices:
 
@@ -1114,7 +1122,9 @@ Permissions: `ViewJournalEntries`, `CreateJournalEntry`, `EditJournalEntry`, `De
 
 | Method | Path | What it does |
 |---|---|---|
-| `GET` | `/journal` | **All** journal entries, including the automatic ones from purchases, sales and payments (not paged) |
+| `GET` | `/journal/generateNumber` | Preview the next number (plain text, e.g. `\|J-000001`); needs `CreateJournalEntry` |
+| `GET` | `/journal` | Paged list of the **manual** journal entries (e.g. `?remarks=fuel&fromDate=2026-10-01`), each with its `journalEntries` |
+| `GET` | `/journal/{id}` | One manual journal entry |
 | `POST` | `/journal` | Create |
 | `PUT` | `/journal/{id}` | Update |
 | `DELETE` | `/journal/{id}` | Delete |
@@ -1140,7 +1150,7 @@ Rules, checked when you create or update (otherwise **400**):
 - the total can't be zero, and
 - **total debits must equal total credits** (`"Journal debits and credits must be equal"`).
 
-> Journals created automatically by a purchase, sale or payment are kept in sync when you edit that document. Change them by editing the purchase, sale or payment, not through `/journal`.
+> Journals created automatically by a purchase, sale, return or payment are kept in sync when you edit that document, and the opening balance is one too. `/journal` leaves them out of its list, and `GET`, `PUT` and `DELETE /journal/{id}` refuse them (**400** `"This journal was posted by a purchase, sale, return or payment; change that document instead"`, or `"This journal is the opening balance; change it from the opening balance"`). Every journal line shows in [`GET /reports/accounting/journal`](#14-reports).
 
 ### Opening balance
 
@@ -1166,7 +1176,7 @@ Permissions: `ViewOpeningBalance`, `CreateOpeningBalance`
 }
 ```
 
-Here debits and credits **must** match, or you get `"Opening balance debits and credits must be equal"`.
+Here debits and credits **must** match, or you get `"Opening balance debits and credits must be equal"`. Amounts can't be negative; a missing one counts as 0. A line without a `narration` gets `"Opening Balance"`.
 
 ---
 
@@ -1206,8 +1216,8 @@ Leave out the dates to get everything.
 | `GET /reports/accounting/journal` | Every journal line | `ViewAccount` |
 | `GET /reports/accounting/ledger/{accountId}` | One account's ledger with running balance | `ViewAccount` |
 | `GET /reports/accounting/trial-balance` | Trial balance of all accounts | `ViewAccount` |
-| `GET /reports/accounting/receivable` | Accounts receivable: unpaid customer invoices (no dates) | `ViewCustomerPayment` or `ViewAccount` |
-| `GET /reports/accounting/payable` | Accounts payable: unpaid vendor invoices (no dates) | `ViewVendorPayment` or `ViewAccount` |
+| `GET /reports/accounting/receivable` | Accounts receivable: unpaid customer invoices (no dates) | `ViewCustomerPayment`, `ViewAccount` or `CreatePaymentAdjustment` |
+| `GET /reports/accounting/payable` | Accounts payable: unpaid vendor invoices (no dates) | `ViewVendorPayment`, `ViewAccount` or `CreatePaymentAdjustment` |
 
 ### Examples
 

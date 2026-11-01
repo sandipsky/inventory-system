@@ -32,13 +32,15 @@ src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), head
 src/app/features/<module>/        <module>.routes.ts, <module>.model.ts, <module>.service.ts, list + form components
 src/app/features/masters/         one list + one form for units, categories, packings, tax types (MASTERS config)
 src/app/features/party/           one list + one form for vendors and customers (PARTIES config), routed under /purchase and /sales
-src/app/features/accounting/      accounting.routes.ts; account/ is the chart of accounts
+src/app/features/accounting/      accounting.routes.ts; account/ (chart of accounts), journal/ (journal-lines.ts + JournalLinesTable, shared with
+                                  opening-balance/), payment/ (vendor and customer payments, settlement.ts + InvoiceSettlement), payment-adjustment/
 src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
 src/app/features/settings/        configuration/ (company settings, SETTING_FIELDS picks each one's field) and document-numbering/ (view only)
-src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator, user-avatar, cancel-dialog
+src/app/shared/components/        list-page-card, invoice-summary-card, summary-card, party-details-card, amount-totals, date-text, calculator, user-avatar, cancel-dialog
 src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), product-lookup, breadcrumb
 src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing, docNoOptions), batch
-src/app/shared/styles/            document-form, document-list: the one stylesheet of each kind that all four document forms and lists use
+src/app/shared/styles/            document-form, document-list: the one stylesheet of each kind that all four document forms and lists use;
+                                  summary-card: InvoiceSummaryCard and SummaryCard (the same summary without discount fields)
 ```
 
 ## Frontend conventions
@@ -62,7 +64,7 @@ src/app/shared/styles/            document-form, document-list: the one styleshe
 ### Permissions
 
 - `GET /getUserRoleOperations` gives the user's operations (`ViewPurchaseEntry`, `CreatePurchaseEntry`, …); `AuthService.hasOperation()` checks them.
-- Routes declare `data: { operation: 'View…' }` with `canActivate: [permissionGuard]`; sidebar links carry the same operation and are hidden when it isn't granted.
+- Routes declare `data: { operation: 'View…' }` with `canActivate: [permissionGuard]`; sidebar links carry the same operation and are hidden when it isn't granted. Either can be a list, any one of which grants access (Payments: `ViewVendorPayment` or `ViewCustomerPayment`); `hasOperation` takes a list too.
 - Gate buttons and row actions on the matching `Create…` / `Edit…` / `Delete…` operation.
 - After saving the signed-in user's own role or account, call `AuthService.refreshUser()` so menus and the header follow. Their token names their username, so renaming yourself means logging in again.
 - The API deletes a role its users still have (and clears its operations first), after which `GET /users` fails for everyone. Check `UserService.countWithRole` before deleting one.
@@ -89,6 +91,12 @@ Add, edit and view open the same form in a near full-screen bottom drawer (`Draw
 Sales and sales returns are never edited or deleted, in the UI or the API: their forms only add and view, and a saved one is cancelled instead (`CancelDialog` asks for the reason; `POST /sales/{id}` or `/sales-return/{id}` with `cancel_remarks`, gated on `CancelSalesEntry` / `CancelSalesReturn`). A cancelled document keeps its lines and shows the reason in view mode. A sale can't be cancelled while a sales return names it. Purchase returns stay editable and deletable.
 
 Returns name the document the goods came from: purchase returns a Ref. Purchase (`ref_purchase_id`, options from `GET /dropdown/purchase/{vendorId}`), sales returns a Ref. Invoice (`ref_sales_id`, from `GET /dropdown/sales/{customerId}`, cancelled sales left out). Picking one copies its terms and every line at full quantity, replacing the current lines; picking another party clears it.
+
+### Accounting pages
+
+- **Journal entries** list manual journals only (`GET /journal`); the journals documents post are changed through their documents. The form (bottom drawer) and the **opening balance** page (one record, edited in place like configuration) share `JournalLinesTable`: one debit *or* credit per line (typing one side clears the other), totals with the difference, and `journalLinesProblem` before saving. A blank line narration is sent as the remarks, since the ledger shows line narrations.
+- **Payments** are one list and one form for both party types: a Party Type select (`Vendor` / `Customer`) picks the party list and whether invoices due come from `/reports/accounting/payable` or `/receivable`. The form's Payment Type radios (Send / Receive) are the same control under another label, since the API ties direction to party type. A role that can view only one type sees and records only that one. The form has no narration (the API writes one; an edited payment keeps its own while its party stays), no party details card, and the purchase-style SummaryCard. The form's settlement rows (`settlementRows`) show each invoice's due amount; when editing, the payment's own settlements count as available again, since the API reverses them before re-applying. "Settle Oldest First" spreads the amount (`autoSettle`); what isn't settled stays `unadjusted_amount`.
+- **Payment adjustments** list payments with an unadjusted amount; Adjust opens a bottom drawer that settles the party's invoices with it (`POST /payment-adjustment/{id}`).
 
 ### Master data forms
 

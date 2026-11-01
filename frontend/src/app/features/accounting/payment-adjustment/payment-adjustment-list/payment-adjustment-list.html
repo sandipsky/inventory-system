@@ -1,0 +1,126 @@
+<app-list-page-card>
+    <app-list-card-title>
+        <l-filter
+            class="filter"
+            searchBy="partyName"
+            [filterColumns]="filterColumns"
+            (filterChange)="onFilterChange($event)"
+        />
+
+        <l-select
+            class="party-type"
+            aria-label="Party type"
+            placeholder="All Parties"
+            bindLabel="label"
+            bindValue="value"
+            [items]="partyTypes"
+            [clearable]="true"
+            [(ngModel)]="partyType"
+            (ngModelChange)="resetPage()"
+        />
+
+        <l-segmented-control
+            class="calendar"
+            size="md"
+            name="calendar"
+            aria-label="Calendar system"
+            [options]="calendarOptions"
+            [(ngModel)]="calendar"
+        />
+
+        <l-date-input
+            class="date"
+            aria-label="From date"
+            placeholder="From"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [max]="toDate()"
+            [(ngModel)]="fromDate"
+            (ngModelChange)="resetPage()"
+        />
+
+        <l-date-input
+            class="date"
+            aria-label="To date"
+            placeholder="To"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [min]="fromDate()"
+            [(ngModel)]="toDate"
+            (ngModelChange)="resetPage()"
+        />
+
+        <l-button card-actions class="action" variant="outlined" (click)="print()">
+            <l-icon name="printer" [size]="18" color="inherit" />
+            Print
+        </l-button>
+
+        <l-button card-actions class="action" variant="outlined" [disabled]="exporting()" (click)="exportList()">
+            <l-icon name="download" [size]="18" color="inherit" />
+            {{ exporting() ? 'Exporting…' : 'Export' }}
+        </l-button>
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <l-table
+            class="table"
+            rowKey="id"
+            [columns]="columns"
+            [data]="rows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+            [serverSort]="true"
+            [(sort)]="sort"
+            (sortChange)="resetPage()"
+        >
+            <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+            <ng-template lTableCell="system_entry_no" let-row>
+                @if (canAdjust()) {
+                    <l-button class="link" variant="ghost" size="sm" (click)="adjust(row)">
+                        {{ row.system_entry_no | docNo }}
+                    </l-button>
+                } @else {
+                    {{ row.system_entry_no | docNo }}
+                }
+            </ng-template>
+
+            <ng-template lTableCell="date" let-row>
+                <app-date-text [date]="row.date" [calendar]="calendar()" />
+            </ng-template>
+
+            <ng-template lTableCell="type" let-row>
+                <l-chip size="sm" [dot]="true" [variant]="row.type === 'Vendor' ? 'premium' : 'primary'">
+                    {{ row.type === 'Vendor' ? 'VENDOR' : 'CUSTOMER' }}
+                </l-chip>
+            </ng-template>
+
+            <ng-template lTableCell="party" let-row>
+                <div class="stack">
+                    <span>{{ partyName(row) }}</span>
+                    <span class="muted">{{ row.payment_mode_name }}</span>
+                </div>
+            </ng-template>
+
+            <ng-template lTableCell="amount" let-row>{{ row.amount | amount }}</ng-template>
+            <ng-template lTableCell="total_adjusted_paid_amount" let-row>{{ row.total_adjusted_paid_amount | amount }}</ng-template>
+
+            <ng-template lTableCell="unadjusted_amount" let-row>
+                <strong class="advance">{{ row.unadjusted_amount | amount }}</strong>
+            </ng-template>
+
+            <ng-template lTableCell="actions" let-row>
+                @if (canAdjust()) {
+                    <l-button class="adjust" variant="outlined-primary" size="sm" (click)="adjust(row)">
+                        <l-icon name="calculator" [size]="16" color="inherit" />
+                        Adjust
+                    </l-button>
+                }
+            </ng-template>
+        </l-table>
+    </app-list-card-body>
+
+    <app-list-card-footer>
+        <l-pagination [length]="total()" [(pageIndex)]="pageIndex" [(pageSize)]="pageSize" />
+    </app-list-card-footer>
+</app-list-page-card>

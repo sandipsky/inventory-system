@@ -50,8 +50,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         children: [
           { label: 'Chart of Accounts', icon: 'list', route: '/accounting/accounts', operation: 'ViewAccountMaster' },
           { label: 'Journal Entries', icon: 'notebook', route: '/accounting/journal', operation: 'ViewJournalEntries' },
-          { label: 'Vendor Payments', icon: 'wallet', route: '/accounting/payments/vendor', operation: 'ViewVendorPayment' },
-          { label: 'Customer Payments', icon: 'wallet_alt', route: '/accounting/payments/customer', operation: 'ViewCustomerPayment' },
+          {
+            label: 'Payments',
+            icon: 'wallet',
+            route: '/accounting/payments',
+            operation: ['ViewVendorPayment', 'ViewCustomerPayment'],
+          },
           { label: 'Payment Adjustments', icon: 'calculator', route: '/accounting/payment-adjustment', operation: 'ViewPaymentAdjustment' },
           { label: 'Opening Balance', icon: 'bank', route: '/accounting/opening-balance', operation: 'ViewOpeningBalance' },
         ],

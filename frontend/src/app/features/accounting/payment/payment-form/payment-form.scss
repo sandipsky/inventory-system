@@ -1,0 +1,60 @@
+// The top card holds only the header pills.
+.top .fields {
+  margin-bottom: 0;
+
+  .field.number {
+    width: 200px;
+  }
+
+  // The payment number: shown in a pill like the fields beside it, but not editable.
+  .doc-no {
+    overflow: hidden;
+    background: var(--bg-light);
+    color: var(--info);
+    line-height: 20px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.section-title {
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+// Payment Details: labelled fields in even columns.
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  align-items: start;
+  gap: 12px 16px;
+
+  // Send / Receive as bordered pills, the picked one in accent.
+  .direction ::ng-deep {
+    .radio-group {
+      gap: 8px;
+    }
+
+    .radio-control {
+      min-width: 92px;
+      padding: 6px 12px;
+      border: 1px solid var(--separator);
+      border-radius: 8px;
+      background: var(--bg-lightest);
+      cursor: pointer;
+
+      &:has(.radio-input:checked) {
+        border-color: var(--accent);
+        color: var(--accent-dark);
+      }
+    }
+  }
+
+  // View mode: Lumen marks required labels even when they only display a value.
+  &.view ::ng-deep .required-asterisk {
+    display: none;
+  }
+}

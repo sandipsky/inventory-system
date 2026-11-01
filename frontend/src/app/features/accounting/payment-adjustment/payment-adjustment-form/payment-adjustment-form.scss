@@ -1,0 +1,25 @@
+// The payment being adjusted, label over value like the party details card.
+.payment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 48px;
+
+  .item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    dt {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    dd {
+      color: var(--text-primary);
+      font-weight: 500;
+      line-height: 20px;
+    }
+  }
+}

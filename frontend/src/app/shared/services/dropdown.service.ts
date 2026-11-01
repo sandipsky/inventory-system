@@ -68,6 +68,11 @@ export class DropdownService {
     return this.http.get<DropdownItem[]>(`${this.baseUrl}/sales/${customerId}`);
   }
 
+  /** Accounts money is paid from or into: the active `Cash & Cash Equivalents` accounts (Cash, banks, …). */
+  paymentModes(): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/paymentModes`);
+  }
+
   /** Chart of accounts entries, e.g. `accounts('party', 'vendor')` for vendor accounts. */
   accounts(
     scope: AccountScope = 'all',

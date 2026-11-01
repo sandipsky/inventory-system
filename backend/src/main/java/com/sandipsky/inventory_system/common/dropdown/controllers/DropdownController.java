@@ -40,6 +40,12 @@ public class DropdownController {
         return service.getAccountMasterDropdown(type, partyType, status);
     }
 
+    // Accounts money is paid from or into: the active Cash & Cash Equivalents accounts
+    @GetMapping("/paymentModes")
+    public List<DropdownDTO> getPaymentModeDropdown() {
+        return service.getPaymentModeDropdown();
+    }
+
     @GetMapping("/units/{status}")
     public List<DropdownDTO> getUnitsDropdown(@PathVariable String status) {
         return service.getUnitsDropdown(status);

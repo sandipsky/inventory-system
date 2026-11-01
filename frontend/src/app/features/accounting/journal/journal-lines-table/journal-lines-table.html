@@ -1,0 +1,57 @@
+<l-table
+    class="lines"
+    emptyText="No accounts added yet."
+    [columns]="columns()"
+    [data]="lines()"
+    [rowKey]="trackLine"
+>
+    <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+    <ng-template lTableCell="account" let-row>
+        <l-select
+            placeholder="Select account"
+            bindLabel="name"
+            bindValue="id"
+            [items]="accounts()"
+            [searchable]="true"
+            [viewMode]="readonly()"
+            [formControl]="row.controls.account_master_id"
+        />
+    </ng-template>
+
+    <ng-template lTableCell="narration" let-row>
+        <l-text-input placeholder="Same as remarks" [viewMode]="readonly()" [formControl]="row.controls.narration" />
+    </ng-template>
+
+    <ng-template lTableCell="debit_amount" let-row>
+        <l-number-input
+            class="amount"
+            placeholder="0.00"
+            [decimalPlaces]="2"
+            [viewMode]="readonly()"
+            [viewValue]="amountText(row.controls.debit_amount.value)"
+            [formControl]="row.controls.debit_amount"
+            (valueChange)="onDebit(row, $event)"
+        />
+    </ng-template>
+
+    <ng-template lTableCell="credit_amount" let-row>
+        <l-number-input
+            class="amount"
+            placeholder="0.00"
+            [decimalPlaces]="2"
+            [viewMode]="readonly()"
+            [viewValue]="amountText(row.controls.credit_amount.value)"
+            [formControl]="row.controls.credit_amount"
+            (valueChange)="onCredit(row, $event)"
+        />
+    </ng-template>
+
+    <ng-template lTableCell="actions" let-row>
+        <l-button class="remove" variant="ghost" size="sm" [rounded]="true" aria-label="Remove line" (click)="remove.emit(row)">
+            <l-icon name="trash" [size]="16" color="inherit" />
+        </l-button>
+    </ng-template>
+</l-table>
+
+<app-amount-totals class="totals" [items]="totalItems()" [readonly]="readonly()" />

@@ -1,0 +1,121 @@
+:host {
+  display: block;
+}
+
+.page {
+  overflow: hidden;
+
+  l-icon {
+    display: inline-flex;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--separator);
+    background: var(--bg-lightest);
+
+    .heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--separator-dark);
+      border-radius: 8px;
+      background: var(--bg-lightest);
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
+    }
+
+    .title {
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .subtitle {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+  }
+
+  .body {
+    padding: 16px 20px;
+  }
+
+  .fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    margin-bottom: 16px;
+
+    .date {
+      width: 200px;
+    }
+
+    .remarks {
+      flex: 1 1 320px;
+      max-width: 560px;
+    }
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .section-title {
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 20px;
+    }
+  }
+
+  .error,
+  .empty {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .error {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    p {
+      color: var(--error);
+    }
+  }
+
+  // View mode: Lumen marks required labels even when they only display a value.
+  .section.view ::ng-deep .required-asterisk {
+    display: none;
+  }
+}

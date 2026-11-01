@@ -1,0 +1,25 @@
+<l-table
+    class="invoices"
+    [columns]="columns()"
+    [data]="rows()"
+    [loading]="loading()"
+    [emptyText]="emptyText()"
+    [rowKey]="trackRow"
+>
+    <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+    <ng-template lTableCell="invoice_date" let-row>
+        <app-date-text fallback="-" [date]="row.invoice_date" [calendar]="calendar()" />
+    </ng-template>
+    <ng-template lTableCell="invoice_number" let-row>{{ row.invoice_number | docNo }}</ng-template>
+    <ng-template lTableCell="total_invoice_amount" let-row>{{ row.total_invoice_amount | amount }}</ng-template>
+    <ng-template lTableCell="due_amount" let-row>
+        <strong>{{ row.due_amount | amount }}</strong>
+    </ng-template>
+    <ng-template lTableCell="paid" let-row>
+        @if (readonly()) {
+            <strong>{{ row.paid.value | amount }}</strong>
+        } @else {
+            <l-number-input class="amount" placeholder="0.00" [decimalPlaces]="2" [formControl]="row.paid" />
+        }
+    </ng-template>
+</l-table>

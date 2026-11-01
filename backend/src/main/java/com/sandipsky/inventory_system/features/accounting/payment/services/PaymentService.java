@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.sandipsky.inventory_system.common.util.MoneyUtil;
 import com.sandipsky.inventory_system.common.util.QueryParamUtil;
 import java.util.Map;
 import com.sandipsky.inventory_system.features.accounting.account.entities.AccountMaster;
@@ -33,6 +34,8 @@ import com.sandipsky.inventory_system.common.util.SpecificationBuilder;
 
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+
+import jakarta.persistence.criteria.JoinType;
 
 @Service
 public class PaymentService {
@@ -67,9 +70,27 @@ public class PaymentService {
     private final SpecificationBuilder<MasterPayment> specBuilder = new SpecificationBuilder<>();
 
     public Page<MasterPaymentDTO> getPaginatedMasterPaymentsList(Map<String, String> params) {
+        return findPage(params, null);
+    }
+
+    // A page of the payments matching the list params, narrowed by `extra` when given.
+    // `partyName` searches vendor and customer names alike, as a payment has one or the other.
+    public Page<MasterPaymentDTO> findPage(Map<String, String> params, Specification<MasterPayment> extra) {
         Pageable pageable = QueryParamUtil.toPageable(params);
 
-        Specification<MasterPayment> spec = specBuilder.buildSpecification(QueryParamUtil.toFilterParams(params));
+        Map<String, String> filters = QueryParamUtil.toFilterParams(params);
+        String partyName = filters.remove("partyName");
+
+        Specification<MasterPayment> spec = specBuilder.buildSpecification(filters);
+        if (partyName != null) {
+            String pattern = "%" + partyName.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.join("vendor", JoinType.LEFT).get("name")), pattern),
+                    cb.like(cb.lower(root.join("customer", JoinType.LEFT).get("name")), pattern)));
+        }
+        if (extra != null) {
+            spec = spec.and(extra);
+        }
         Page<MasterPayment> paymentPage = repository.findAll(spec, pageable);
         return paymentPage.map(this::mapToDTO);
     }
@@ -94,11 +115,11 @@ public class PaymentService {
         mapDtoToEntity(dto, masterPayment);
 
         double adjusted = applyDetails(dto.getPaymentDetails(), masterPayment, 0);
-        if (adjusted > dto.getAmount()) {
+        if (MoneyUtil.exceeds(adjusted, dto.getAmount())) {
             throw new BadRequestException("Adjusted amount cannot exceed the payment amount");
         }
-        masterPayment.setTotalAdjustedPaidAmount(adjusted);
-        masterPayment.setUnadjustedAmount(dto.getAmount() - adjusted);
+        masterPayment.setTotalAdjustedPaidAmount(MoneyUtil.round2(adjusted));
+        masterPayment.setUnadjustedAmount(MoneyUtil.round2(dto.getAmount() - adjusted));
         masterPayment.setTotalPaymentAmount(dto.getAmount());
 
         MasterPayment savedEntry = repository.save(masterPayment);
@@ -124,11 +145,11 @@ public class PaymentService {
         mapDtoToEntity(dto, masterPayment);
 
         double adjusted = applyDetails(dto.getPaymentDetails(), masterPayment, 0);
-        if (adjusted > dto.getAmount()) {
+        if (MoneyUtil.exceeds(adjusted, dto.getAmount())) {
             throw new BadRequestException("Adjusted amount cannot exceed the payment amount");
         }
-        masterPayment.setTotalAdjustedPaidAmount(adjusted);
-        masterPayment.setUnadjustedAmount(dto.getAmount() - adjusted);
+        masterPayment.setTotalAdjustedPaidAmount(MoneyUtil.round2(adjusted));
+        masterPayment.setUnadjustedAmount(MoneyUtil.round2(dto.getAmount() - adjusted));
         masterPayment.setTotalPaymentAmount(dto.getAmount());
 
         MasterPayment savedEntry = repository.save(masterPayment);
@@ -190,11 +211,11 @@ public class PaymentService {
     private void applyDueInvoice(String invoiceNumber, double paidAmount) {
         AmountDueInvoice dueInvoice = amountDueInvoiceRepository.findByInvoiceNumber(invoiceNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Due Invoice not found: " + invoiceNumber));
-        if (dueInvoice.getDueAmount() < paidAmount) {
+        if (MoneyUtil.exceeds(paidAmount, dueInvoice.getDueAmount())) {
             throw new BadRequestException("Paid amount exceeds due amount for invoice " + invoiceNumber);
         }
-        dueInvoice.setPaidAmount(dueInvoice.getPaidAmount() + paidAmount);
-        dueInvoice.setDueAmount(dueInvoice.getDueAmount() - paidAmount);
+        dueInvoice.setPaidAmount(MoneyUtil.round2(dueInvoice.getPaidAmount() + paidAmount));
+        dueInvoice.setDueAmount(MoneyUtil.round2(dueInvoice.getDueAmount() - paidAmount));
         amountDueInvoiceRepository.save(dueInvoice);
     }
 
@@ -203,14 +224,17 @@ public class PaymentService {
         if (dueInvoice == null) {
             return;
         }
-        dueInvoice.setPaidAmount(dueInvoice.getPaidAmount() - paidAmount);
-        dueInvoice.setDueAmount(dueInvoice.getDueAmount() + paidAmount);
+        dueInvoice.setPaidAmount(MoneyUtil.round2(dueInvoice.getPaidAmount() - paidAmount));
+        dueInvoice.setDueAmount(MoneyUtil.round2(dueInvoice.getDueAmount() + paidAmount));
         amountDueInvoiceRepository.save(dueInvoice);
     }
 
     private void mapDtoToEntity(MasterPaymentDTO dto, MasterPayment masterPayment) {
         if (!"Vendor".equals(dto.getType()) && !"Customer".equals(dto.getType())) {
             throw new BadRequestException("Payment type must be either Vendor or Customer");
+        }
+        if (dto.getAmount() <= 0) {
+            throw new BadRequestException("Payment amount must be greater than zero");
         }
         masterPayment.setDate(dto.getDate());
         masterPayment.setType(dto.getType());
@@ -289,6 +313,9 @@ public class PaymentService {
                 journalEntryRepository.delete(existingEntry);
             }
             masterJournalEntryRepository.delete(existing);
+            // Flush now: the replacement journal is inserted immediately (identity id) and reuses
+            // the same system_entry_no, so the delete must reach the database first
+            masterJournalEntryRepository.flush();
         }
     }
 

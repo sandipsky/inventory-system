@@ -5,12 +5,16 @@ import com.sandipsky.inventory_system.features.accounting.journal.repositories.M
 import com.sandipsky.inventory_system.features.accounting.journal.dtos.MasterJournalEntryDTO;
 import com.sandipsky.inventory_system.features.accounting.journal.entities.MasterJournalEntry;
 import com.sandipsky.inventory_system.features.accounting.journal.repositories.JournalEntryRepository;
+import com.sandipsky.inventory_system.features.accounting.opening_balance.services.OpeningBalanceService;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +22,8 @@ import com.sandipsky.inventory_system.features.accounting.account.entities.Accou
 import com.sandipsky.inventory_system.common.exception.BadRequestException;
 import com.sandipsky.inventory_system.common.exception.ResourceNotFoundException;
 import com.sandipsky.inventory_system.features.accounting.account.repositories.AccountMasterRepository;
+import com.sandipsky.inventory_system.common.util.QueryParamUtil;
+import com.sandipsky.inventory_system.common.util.SpecificationBuilder;
 
 @Service
 public class JournalEntryService {
@@ -33,13 +39,27 @@ public class JournalEntryService {
     @Autowired
     private DocumentNumberingService documentNumberService;
 
-    public List<MasterJournalEntryDTO> getAllJournalReport() {
-        List<MasterJournalEntry> journalEntries = repository.findAll();
-        List<MasterJournalEntryDTO> journalEntriesDTO = new ArrayList<>();
-        for (MasterJournalEntry entry : journalEntries) {
-            journalEntriesDTO.add(mapToDTO(entry));
-        }
-        return journalEntriesDTO;
+    private final SpecificationBuilder<MasterJournalEntry> specBuilder = new SpecificationBuilder<>();
+
+    // Journals typed in by hand: not posted by a document, and not the opening balance
+    private static final Specification<MasterJournalEntry> MANUAL_ONLY = (root, query, cb) -> cb.and(
+            cb.isNull(root.get("masterPurchaseEntry")),
+            cb.isNull(root.get("masterSalesEntry")),
+            cb.isNull(root.get("masterPurchaseReturn")),
+            cb.isNull(root.get("masterSalesReturn")),
+            cb.isNull(root.get("masterPayment")),
+            cb.notEqual(root.get("systemEntryNo"), OpeningBalanceService.OPENING_BALANCE_ENTRY_NO));
+
+    public Page<MasterJournalEntryDTO> getPaginatedJournalEntries(Map<String, String> params) {
+        Pageable pageable = QueryParamUtil.toPageable(params);
+        Specification<MasterJournalEntry> spec = specBuilder
+                .buildSpecification(QueryParamUtil.toFilterParams(params))
+                .and(MANUAL_ONLY);
+        return repository.findAll(spec, pageable).map(this::mapToDTO);
+    }
+
+    public MasterJournalEntryDTO getJournalEntryById(int id) {
+        return mapToDTO(findManualJournal(id));
     }
 
     @Transactional
@@ -74,8 +94,7 @@ public class JournalEntryService {
     public MasterJournalEntry updateMasterJournalEntry(int id, MasterJournalEntryDTO masterJournalEntryDTO) {
         validateBalanced(masterJournalEntryDTO.getJournalEntries());
 
-        MasterJournalEntry masterJournalEntry = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Journal Entry with Given Id not found"));
+        MasterJournalEntry masterJournalEntry = findManualJournal(id);
         masterJournalEntry.setDate(masterJournalEntryDTO.getDate());
         masterJournalEntry.setRemarks(masterJournalEntryDTO.getRemarks());
 
@@ -129,12 +148,29 @@ public class JournalEntryService {
 
     @Transactional
     public void deleteMasterJournalEntry(int id) {
-        MasterJournalEntry masterJournalEntry = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Journal Entry with Given Id not found"));
+        MasterJournalEntry masterJournalEntry = findManualJournal(id);
         for (JournalEntry item : masterJournalEntry.getJournalEntries()) {
             journalEntryRepository.deleteById(item.getId());
         }
         repository.deleteById(id);
+    }
+
+    // The journals a document or the opening balance posted are kept in sync with it,
+    // so only manual ones are read and changed here
+    private MasterJournalEntry findManualJournal(int id) {
+        MasterJournalEntry entry = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Journal Entry with Given Id not found"));
+        boolean posted = entry.getMasterPurchaseEntry() != null || entry.getMasterSalesEntry() != null
+                || entry.getMasterPurchaseReturn() != null || entry.getMasterSalesReturn() != null
+                || entry.getMasterPayment() != null;
+        if (posted) {
+            throw new BadRequestException(
+                    "This journal was posted by a purchase, sale, return or payment; change that document instead");
+        }
+        if (OpeningBalanceService.OPENING_BALANCE_ENTRY_NO.equals(entry.getSystemEntryNo())) {
+            throw new BadRequestException("This journal is the opening balance; change it from the opening balance");
+        }
+        return entry;
     }
 
     private MasterJournalEntryDTO mapToDTO(MasterJournalEntry entity) {

@@ -32,10 +32,11 @@ export const guestGuard: CanActivateFn = () => {
 
 /**
  * Requires the backend operation in the route's `data.operation` (e.g. `ViewPurchaseEntry`),
- * the same one the sidebar uses to show the link. Routes without one are open to any signed-in user.
+ * or any one of a list of them, the same as the sidebar uses to show the link. Routes without
+ * one are open to any signed-in user.
  */
 export const permissionGuard: CanActivateFn = route => {
-  const operation: string | undefined = route.data['operation'];
+  const operation: string | string[] | undefined = route.data['operation'];
   if (!operation) return true;
 
   const auth = inject(AuthService);
@@ -45,7 +46,8 @@ export const permissionGuard: CanActivateFn = route => {
   return auth.loadUser().pipe(
     map(() => {
       if (auth.hasOperation(operation)) return true;
-      notification.warn('Access denied', `Your role does not allow this page (${operation}).`);
+      const names = typeof operation === 'string' ? operation : operation.join(' or ');
+      notification.warn('Access denied', `Your role does not allow this page (${names}).`);
       return router.createUrlTree(['/dashboard']);
     }),
     catchError(() => of(router.createUrlTree(['/login']))),

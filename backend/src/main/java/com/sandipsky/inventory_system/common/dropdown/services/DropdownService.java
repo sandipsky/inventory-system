@@ -95,6 +95,10 @@ public class DropdownService {
         return accountRepository.findFilteredDropdown(atype, ptype, isActive);
     }
 
+    public List<DropdownDTO> getPaymentModeDropdown() {
+        return accountRepository.findActiveDropdownByAccountType("Cash & Cash Equivalents");
+    }
+
     public List<DropdownDTO> getUnitsDropdown(String status) {
         Boolean isActive = "active".equalsIgnoreCase(status) ? true : null;
         return unitRepository.findFilteredDropdown(isActive);

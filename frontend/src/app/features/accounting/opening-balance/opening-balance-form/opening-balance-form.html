@@ -1,0 +1,84 @@
+<l-card class="page" padding="none">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon name="bank" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">Opening Balance</h2>
+                <p class="subtitle">
+                    {{ editing() ? 'Saving replaces the whole opening balance' : 'The balances your accounts had when you started using the system' }}
+                </p>
+            </div>
+        </div>
+
+        <div class="actions">
+            @if (editing()) {
+                <l-button variant="outlined" [disabled]="saving()" (click)="cancel()">Cancel</l-button>
+                <l-button variant="primary" [disabled]="saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save' }}</l-button>
+            } @else if (canEdit()) {
+                <l-button variant="primary" [disabled]="loading() || !!loadError()" (click)="startEdit()">
+                    <l-icon [name]="isSet() ? 'edit' : 'add'" [size]="18" color="inherit" />
+                    {{ isSet() ? 'Edit' : 'Set Opening Balance' }}
+                </l-button>
+            }
+        </div>
+    </header>
+
+    <div class="body">
+        @if (loadError()) {
+            <div class="error">
+                <p>{{ loadError() }}</p>
+                <l-button variant="outlined" (click)="load()">
+                    <l-icon name="refresh" [size]="18" color="inherit" />
+                    Try again
+                </l-button>
+            </div>
+        } @else {
+            <l-skeleton [visible]="loading()">
+                @if (readonly() && !isSet()) {
+                    <p class="empty">No opening balance has been set yet.</p>
+                } @else {
+                    <form class="section" [class.view]="readonly()" [formGroup]="form">
+                        <div class="fields">
+                            <l-date-input
+                                class="date"
+                                label="Date"
+                                placeholder="YYYY/MM/DD"
+                                format="YYYY/MM/DD"
+                                calendar="bs"
+                                [viewMode]="readonly()"
+                                formControlName="date"
+                            />
+                            <l-text-input
+                                class="remarks"
+                                label="Remarks"
+                                placeholder="e.g. Opening balance FY 2083/84"
+                                [viewMode]="readonly()"
+                                formControlName="remarks"
+                            />
+                        </div>
+
+                        <div class="section-head">
+                            <h3 class="section-title">Account Balances</h3>
+                            @if (!readonly()) {
+                                <l-button class="add" variant="outlined-primary" (click)="addLine()">
+                                    <l-icon name="add" [size]="16" color="inherit" />
+                                    Add Account
+                                </l-button>
+                            }
+                        </div>
+
+                        <app-journal-lines-table
+                            [lines]="lines()"
+                            [accounts]="accountOptions()"
+                            [totals]="totals()"
+                            [readonly]="readonly()"
+                            (remove)="removeLine($event)"
+                        />
+                    </form>
+                }
+            </l-skeleton>
+        }
+    </div>
+</l-card>

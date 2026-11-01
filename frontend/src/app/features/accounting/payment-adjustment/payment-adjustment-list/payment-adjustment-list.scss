@@ -1,0 +1,18 @@
+// Global form styles make selects full width; keep the toolbar one compact.
+.party-type {
+  width: 160px;
+}
+
+.table {
+  .advance {
+    color: var(--warn);
+  }
+
+  .adjust {
+    display: inline-flex;
+
+    l-icon {
+      display: inline-flex;
+    }
+  }
+}

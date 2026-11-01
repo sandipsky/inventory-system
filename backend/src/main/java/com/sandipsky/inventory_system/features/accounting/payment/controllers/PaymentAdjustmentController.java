@@ -5,8 +5,10 @@ import com.sandipsky.inventory_system.features.accounting.payment.dtos.PaymentDe
 import com.sandipsky.inventory_system.features.accounting.payment.entities.MasterPayment;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import com.sandipsky.inventory_system.common.dto.ApiResponse;
@@ -24,8 +26,8 @@ public class PaymentAdjustmentController {
 
     @GetMapping()
     @RequiresOperation("ViewPaymentAdjustment")
-    public List<MasterPaymentDTO> getPaymentsWithUnadjustedAmount() {
-        return service.getPaymentsWithUnadjustedAmount();
+    public Page<MasterPaymentDTO> getPaymentsWithUnadjustedAmount(@RequestParam Map<String, String> params) {
+        return service.getPaymentsWithUnadjustedAmount(params);
     }
 
     @PostMapping("/{paymentId}")

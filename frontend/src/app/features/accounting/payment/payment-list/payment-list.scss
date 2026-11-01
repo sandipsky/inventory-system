@@ -1,0 +1,12 @@
+// Global form styles make selects full width; keep the toolbar one compact.
+.party-type {
+  width: 160px;
+}
+
+.table {
+  // Money not yet settled against an invoice: an advance to adjust later.
+  .advance {
+    color: var(--warn);
+    font-weight: 600;
+  }
+}

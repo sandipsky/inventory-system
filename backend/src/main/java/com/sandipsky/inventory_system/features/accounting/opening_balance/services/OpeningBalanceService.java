@@ -19,7 +19,7 @@ import com.sandipsky.inventory_system.features.accounting.account.repositories.A
 public class OpeningBalanceService {
 
     // The opening balance lives in the books as one well-known journal entry
-    private static final String OPENING_BALANCE_ENTRY_NO = "OPENING-BALANCE";
+    public static final String OPENING_BALANCE_ENTRY_NO = "OPENING-BALANCE";
 
     @Autowired
     private MasterJournalEntryRepository masterJournalEntryRepository;
@@ -69,6 +69,16 @@ public class OpeningBalanceService {
         double totalDebit = 0;
         double totalCredit = 0;
         for (JournalEntryDTO item : dto.getJournalEntries()) {
+            // A blank side is a zero, as it is in a journal
+            if (item.getDebitAmount() == null) {
+                item.setDebitAmount(0.0);
+            }
+            if (item.getCreditAmount() == null) {
+                item.setCreditAmount(0.0);
+            }
+            if (item.getDebitAmount() < 0 || item.getCreditAmount() < 0) {
+                throw new BadRequestException("Debit and credit amounts cannot be negative");
+            }
             totalDebit += item.getDebitAmount();
             totalCredit += item.getCreditAmount();
         }
@@ -83,6 +93,9 @@ public class OpeningBalanceService {
                 journalEntryRepository.delete(existingEntry);
             }
             masterJournalEntryRepository.delete(existing);
+            // Flush now: the replacement is inserted immediately (identity id) under the same
+            // system_entry_no, so the delete must reach the database first
+            masterJournalEntryRepository.flush();
         }
 
         MasterJournalEntry masterJournalEntry = new MasterJournalEntry();

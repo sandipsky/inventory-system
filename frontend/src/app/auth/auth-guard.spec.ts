@@ -82,5 +82,15 @@ describe('auth guards', () => {
       const tree = (await result(run(permissionGuard, { operation: 'ViewPurchaseEntry' }))) as UrlTree;
       expect(tree.toString()).toBe('/dashboard');
     });
+
+    it('allows any one of several operations', async () => {
+      const operation = ['ViewVendorPayment', 'ViewCustomerPayment'];
+      auth.user.set(testUser({ operations: ['ViewCustomerPayment'] }));
+      expect(await result(run(permissionGuard, { operation }))).toBe(true);
+
+      auth.user.set(testUser({ operations: ['ViewSalesEntries'] }));
+      const tree = (await result(run(permissionGuard, { operation }))) as UrlTree;
+      expect(tree.toString()).toBe('/dashboard');
+    });
   });
 });
