@@ -1,0 +1,100 @@
+<l-card class="page" padding="none">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon name="configuration" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">Configuration</h2>
+                <p class="subtitle">{{ editing() ? 'Update the company details and defaults' : 'Company details and defaults used across the app' }}</p>
+            </div>
+        </div>
+
+        <div class="actions">
+            @if (editing()) {
+                <l-button variant="outlined" [disabled]="saving()" (click)="cancel()">Cancel</l-button>
+                <l-button variant="primary" [disabled]="saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save' }}</l-button>
+            } @else if (canEdit()) {
+                <l-button variant="primary" [disabled]="loading() || !!loadError()" (click)="startEdit()">
+                    <l-icon name="edit" [size]="18" color="inherit" />
+                    Edit
+                </l-button>
+            }
+        </div>
+    </header>
+
+    <div class="body">
+        @if (loadError()) {
+            <div class="error">
+                <p>{{ loadError() }}</p>
+                <l-button variant="outlined" (click)="load()">
+                    <l-icon name="refresh" [size]="18" color="inherit" />
+                    Try again
+                </l-button>
+            </div>
+        } @else {
+            <l-skeleton [visible]="loading()">
+                <form class="sections" [class.view]="readonly()" [formGroup]="form">
+                    @for (section of sections(); track section.key) {
+                        <l-card class="section" [class.other]="section.key === 'other'" padding="md">
+                            <h3 class="section-title">{{ section.title }}</h3>
+                            <p class="section-subtitle">{{ section.subtitle }}</p>
+
+                            <div class="grid">
+                                @for (row of section.rows; track row.setting.id) {
+                                    @switch (row.field.kind) {
+                                        @case ('select') {
+                                            <l-select
+                                                [class.wide]="row.field.wide"
+                                                [label]="row.label"
+                                                [placeholder]="row.field.placeholder ?? ''"
+                                                bindLabel="label"
+                                                bindValue="value"
+                                                [items]="row.options"
+                                                [viewMode]="isReadonly(row)"
+                                                [formControlName]="row.setting.name"
+                                            />
+                                        }
+                                        @case ('email') {
+                                            <l-email-input
+                                                [class.wide]="row.field.wide"
+                                                [label]="row.label"
+                                                [placeholder]="row.field.placeholder ?? ''"
+                                                [viewMode]="isReadonly(row)"
+                                                [formControlName]="row.setting.name"
+                                            />
+                                        }
+                                        @case ('toggle') {
+                                            <div class="toggle wide">
+                                                <l-toggle
+                                                    [label]="row.label"
+                                                    labelPosition="left"
+                                                    [viewMode]="isReadonly(row)"
+                                                    [formControlName]="row.setting.name"
+                                                />
+                                                @if (row.field.hint) {
+                                                    <p class="hint">{{ row.field.hint }}</p>
+                                                }
+                                            </div>
+                                        }
+                                        @default {
+                                            <l-text-input
+                                                [class.wide]="row.field.wide"
+                                                [label]="row.label"
+                                                [placeholder]="row.field.placeholder ?? ''"
+                                                [viewMode]="isReadonly(row)"
+                                                [formControlName]="row.setting.name"
+                                            />
+                                        }
+                                    }
+                                }
+                            </div>
+                        </l-card>
+                    } @empty {
+                        <p class="empty">No settings found.</p>
+                    }
+                </form>
+            </l-skeleton>
+        }
+    </div>
+</l-card>

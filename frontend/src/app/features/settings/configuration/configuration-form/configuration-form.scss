@@ -1,0 +1,158 @@
+:host {
+  display: block;
+}
+
+.page {
+  overflow: hidden;
+
+  l-icon {
+    display: inline-flex;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--separator);
+    background: var(--bg-lightest);
+
+    .heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--separator-dark);
+      border-radius: 8px;
+      background: var(--bg-lightest);
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(13, 13, 18, 0.06);
+    }
+
+    .title {
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .subtitle {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+  }
+
+  .body {
+    padding: 16px 20px;
+    background: var(--bg-light);
+  }
+
+  // Company details on the left; preferences in a narrower column on the right.
+  .sections {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    align-items: start;
+    gap: 16px;
+
+    @media (max-width: 1100px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .other {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .section-title {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .section-subtitle {
+    margin-bottom: 12px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .grid {
+    display: grid;
+    // Wide enough that the four short company fields pair up, or fit one row on big screens.
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px 16px;
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .toggle {
+    l-toggle {
+      display: block;
+      padding: 8px 0 0;
+
+      // Label on the left, switch on the right edge.
+      ::ng-deep label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      ::ng-deep .control-label {
+        font-weight: 400;
+      }
+    }
+  }
+
+  .hint {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .error,
+  .empty {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .error {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    p {
+      color: var(--error);
+    }
+  }
+
+  // View mode: Lumen marks required labels even when they only display a value.
+  .sections.view ::ng-deep .required-asterisk {
+    display: none;
+  }
+}

@@ -34,6 +34,7 @@ src/app/features/masters/         one list + one form for units, categories, pac
 src/app/features/party/           one list + one form for vendors and customers (PARTIES config), routed under /purchase and /sales
 src/app/features/accounting/      accounting.routes.ts; account/ is the chart of accounts
 src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
+src/app/features/settings/        configuration/ (company settings, SETTING_FIELDS picks each one's field) and document-numbering/ (view only)
 src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator, user-avatar
 src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), breadcrumb
 src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing)

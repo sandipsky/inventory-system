@@ -1,0 +1,39 @@
+<app-list-page-card>
+    <app-list-card-title>
+        <p class="note">
+            <l-icon name="lock" [size]="16" color="inherit" />
+            <span>Numbers are assigned in order when a document is saved. These formats are view only.</span>
+        </p>
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <l-table
+            class="table"
+            rowKey="id"
+            [columns]="columns"
+            [data]="rows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+        >
+            <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+            <ng-template lTableCell="name" let-row>
+                <span class="name">{{ row.name }}</span>
+            </ng-template>
+
+            <ng-template lTableCell="prefix" let-row>
+                @if (row.prefix | docNo; as prefix) {
+                    <code class="code">{{ prefix }}</code>
+                } @else {
+                    -
+                }
+            </ng-template>
+
+            <ng-template lTableCell="range" let-row>{{ row.start_no | number }} – {{ row.end_no | number }}</ng-template>
+
+            <ng-template lTableCell="first" let-row>
+                <code class="code">{{ firstNumber(row) | docNo }}</code>
+            </ng-template>
+        </l-table>
+    </app-list-card-body>
+</app-list-page-card>
