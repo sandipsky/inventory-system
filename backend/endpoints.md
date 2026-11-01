@@ -114,6 +114,7 @@ Most `GET` list endpoints are **paged**. They accept these query parameters:
 | `pageIndex` | Page number, **starting at 0** | `0` |
 | `pageSize` | Records per page | `25` |
 | `sort` | `field:asc` or `field:desc`; use commas for several, e.g. `sort=name:asc,id:desc` | none |
+| `fromDate`, `toDate` | Inclusive `YYYY-MM-DD` range on the record's `date`. Only lists of dated documents (purchases, sales, returns, payments, journals, stock adjustments) | none |
 | *any field name* | Filter: "contains", not case-sensitive | none |
 
 **Filters** use the record's **internal (camelCase) field names**, not the snake_case JSON names. Use a dot to filter on a linked record:
@@ -123,6 +124,7 @@ GET /products?name=coca                     → products whose name contains "co
 GET /products?category.name=bev             → products in a category containing "bev"
 GET /purchase?vendor.name=abc&sort=date:desc
 GET /purchase?transactionType=credit        (NOT transaction_type)
+GET /purchase?fromDate=2026-10-01&toDate=2026-10-31
 GET /payment?type=Vendor
 ```
 
