@@ -22,6 +22,22 @@ export class DropdownService {
     return this.http.get<DropdownItem[]>(`${this.baseUrl}/vendor/${status}`);
   }
 
+  categories(status: DropdownStatus = 'active'): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/category/${status}`);
+  }
+
+  units(status: DropdownStatus = 'active'): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/units/${status}`);
+  }
+
+  packings(status: DropdownStatus = 'active'): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/packings/${status}`);
+  }
+
+  taxTypes(status: DropdownStatus = 'active'): Observable<DropdownItem[]> {
+    return this.http.get<DropdownItem[]>(`${this.baseUrl}/taxtypes/${status}`);
+  }
+
   /** e.g. `products('inventory', 'purchasable')` for the purchase line picker. */
   products(
     serviceType: ProductServiceType = 'all',

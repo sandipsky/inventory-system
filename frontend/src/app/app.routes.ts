@@ -28,6 +28,16 @@ export const routes: Routes = [
                 data: { breadcrumb: 'Sales' },
                 loadChildren: () => import('./features/sales/sales.routes').then(m => m.SALES_ROUTES),
             },
+            {
+                path: 'products',
+                data: { breadcrumb: 'Products' },
+                loadChildren: () => import('./features/product/product.routes').then(m => m.PRODUCT_ROUTES),
+            },
+            {
+                path: 'masters',
+                data: { breadcrumb: 'Master Data' },
+                loadChildren: () => import('./features/masters/masters.routes').then(m => m.MASTER_ROUTES),
+            },
         ],
     },
     {

@@ -26,9 +26,10 @@ src/environments/environment.ts   apiUrl
 src/app/auth/                     AuthService, guards, interceptor, login page, auth.testing.ts (spec helpers)
 src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), header, profile/notification menus
 src/app/features/<module>/        <module>.routes.ts, <module>.model.ts, <module>.service.ts, list + form components
+src/app/features/masters/         one list + one form for units, categories, packings, tax types (MASTERS config)
 src/app/shared/components/        list-page-card, invoice-summary-card, party-details-card, date-text, calculator
-src/app/shared/services/          dropdown, product, breadcrumb
-src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals)
+src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), breadcrumb
+src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing)
 ```
 
 ## Frontend conventions
@@ -43,7 +44,7 @@ src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (
 - One service per backend resource, building URLs from `environment.apiUrl`. The `authInterceptor` adds the bearer token; it ends the session on 401 or on any error whose message mentions the JWT.
 - JSON fields are snake_case; line-item lists are camelCase (`purchaseEntries`). Purchases send `tax`, sales send `total_tax`.
 - Dates are `YYYY-MM-DD` strings. Convert with `shared/utils/date.ts` (`toIsoDate`, `fromIsoDate`); `new Date('YYYY-MM-DD')` parses as UTC and shifts the day. Show dates with `<app-date-text>`, which follows the AD/BS calendar.
-- List filters use the entity's camelCase field names (`vendor.name`, `transactionType`); unknown names are silently ignored. `fromDate`/`toDate` filter the document `date`. Sorting uses entity fields too, so lists map table column keys to sort fields.
+- List filters use the entity's camelCase field names (`vendor.name`, `transactionType`); unknown names are silently ignored. Filters match by "contains" on the stored text, so booleans filter as `isActive=1` / `0` (not `true`), and linked records filter by name (`category.name`), since `category.id=1` also matches 10, 11, …. `fromDate`/`toDate` filter the document `date`. Sorting uses entity fields too, so lists map table column keys to sort fields.
 - Document numbers come back like `|PE-000001`: display them through the `docNo` pipe, send them back raw.
 - The server stores the totals it is sent. Compute them with `calculateInvoice` (`shared/utils/invoice.ts`). `discount` holds what the user typed (a percent or an amount, per `discount_type`); the discount amount is `sub_total − taxable_amount − non_taxable_amount`.
 - Show failures with `NotificationService` and `apiErrorMessage(error)`, which reads the backend's `message`.
@@ -71,7 +72,11 @@ Query state lives in signals; a `computed` request feeds `toObservable` + `switc
 
 ### Document forms
 
-Add, edit and view open the same form in a near full-screen bottom drawer (`DrawerService`, `position: 'bottom'`, `panelClass: 'drawer-sheet'`, `disableClose: true`), with the mode and id in `DRAWER_DATA`; there are no form routes. Line items are a typed `FormArray` rendered by `l-table` cell templates. Batches: purchases and sales returns type a `batch_no`; sales and purchase returns pick a `batch_id` from `GET /products/stockInfo/{id}`.
+Add, edit and view open the same form in a near full-screen bottom drawer (`DrawerService`, `position: 'bottom'`, `panelClass: 'drawer-sheet'`, `disableClose: true`), with the mode and id in `DRAWER_DATA`; there are no form routes. Line items are a typed `FormArray` rendered by `l-table` cell templates. Batches: purchases and sales returns type a `batch_no`; sales and purchase returns pick a `batch_id` from `GET /products/stockInfo/{id}`. Products use this drawer too.
+
+### Master data forms
+
+Units, categories, packings and tax types share `MasterList` and `MasterForm`; the route's `data.master` picks the `MASTERS` entry (path, labels, operations, whether it has a `tax_rate`). Add and edit open in a 350px right drawer (`position: 'right'`, `size: '350px'`) with the row itself in `DRAWER_DATA`, so nothing loads; there is no view mode.
 
 ## Checking UI changes
 

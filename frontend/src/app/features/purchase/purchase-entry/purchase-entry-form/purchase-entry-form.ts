@@ -36,6 +36,7 @@ import { apiErrorMessage } from '../../../../shared/utils/api-error';
 import { downloadCsv } from '../../../../shared/utils/csv';
 import { fromIsoDate, startOfToday, toIsoDate } from '../../../../shared/utils/date';
 import { calculateInvoice, round2 } from '../../../../shared/utils/invoice';
+import { withMissing } from '../../../../shared/utils/options';
 import {
   Purchase,
   PurchaseFormData,
@@ -481,10 +482,4 @@ export class PurchaseEntryForm {
 
 function lineAmount(quantity: number | null, rate: number | null): number {
   return round2((quantity ?? 0) * (rate ?? 0));
-}
-
-/** `items` plus any of `extra` it doesn't already contain. */
-function withMissing(items: DropdownItem[], extra: DropdownItem[]): DropdownItem[] {
-  const ids = new Set(items.map(item => item.id));
-  return [...items, ...extra.filter(item => !ids.has(item.id))];
 }

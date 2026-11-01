@@ -1,0 +1,48 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon [name]="editing ? 'edit' : 'add'" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">{{ title }}</h2>
+                <p class="subtitle">{{ subtitle }}</p>
+            </div>
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <form class="body" [formGroup]="form">
+        <l-text-input
+            label="Name"
+            [placeholder]="'Enter ' + config.singular.toLowerCase() + ' name'"
+            formControlName="name"
+            (enter)="save()"
+        />
+
+        @if (config.hasRate) {
+            <l-number-input
+                label="Tax Rate"
+                placeholder="e.g. 13"
+                suffix="%"
+                [decimalPlaces]="2"
+                formControlName="tax_rate"
+            />
+        }
+
+        <div class="status">
+            <l-toggle label="Active" labelPosition="left" formControlName="is_active" />
+            <p class="hint">Inactive {{ config.plural.toLowerCase() }} are left out of dropdowns.</p>
+        </div>
+    </form>
+
+    <footer class="foot">
+        <l-button variant="outlined" (click)="close()">Cancel</l-button>
+        <l-button variant="primary" [disabled]="saving()" (click)="save()">
+            {{ saving() ? 'Saving…' : editing ? 'Update' : 'Add' }}
+        </l-button>
+    </footer>
+</div>

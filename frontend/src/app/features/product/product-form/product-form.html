@@ -1,0 +1,178 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon [name]="heading().icon" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">{{ title() }}</h2>
+                <p class="subtitle">{{ heading().subtitle }}</p>
+            </div>
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <div class="body">
+        <l-skeleton [visible]="loading()">
+            <form class="sections" [class.view]="readonly()" [formGroup]="form">
+                <div class="column">
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Basic Details</h3>
+                        <div class="grid">
+                            <l-text-input
+                                class="wide"
+                                label="Product Name"
+                                placeholder="Enter product name"
+                                [viewMode]="readonly()"
+                                formControlName="name"
+                            />
+                            <l-text-input label="Code" placeholder="e.g. BEV-001" [viewMode]="readonly()" formControlName="code" />
+                            <l-text-input label="Barcode" placeholder="Scan or type barcode" [viewMode]="readonly()" formControlName="barcode" />
+                            <l-select
+                                label="Category"
+                                placeholder="Select category"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="categoryOptions()"
+                                [searchable]="true"
+                                [clearable]="true"
+                                [viewMode]="readonly()"
+                                formControlName="category_id"
+                            />
+                            <l-select
+                                label="Unit"
+                                placeholder="Select unit"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="unitOptions()"
+                                [searchable]="true"
+                                [viewMode]="readonly()"
+                                formControlName="unit_id"
+                            />
+                            <l-select
+                                label="Packing"
+                                placeholder="Select packing"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="packingOptions()"
+                                [searchable]="true"
+                                [clearable]="true"
+                                [viewMode]="readonly()"
+                                formControlName="packing_id"
+                            />
+                            <l-select
+                                label="Tax Type"
+                                placeholder="Select tax type"
+                                bindLabel="name"
+                                bindValue="id"
+                                [items]="taxTypeOptions()"
+                                [clearable]="true"
+                                [viewMode]="readonly()"
+                                formControlName="tax_type_id"
+                            />
+                            <l-select
+                                label="Valuation Method"
+                                placeholder="Select method"
+                                [items]="valuationOptions()"
+                                [viewMode]="readonly()"
+                                formControlName="valuation_method"
+                            />
+                        </div>
+                    </l-card>
+
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Pricing & Stock</h3>
+                        <div class="grid">
+                            <l-number-input label="Cost Price" placeholder="0.00" [decimalPlaces]="2" [viewMode]="readonly()" formControlName="cost_price" />
+                            <l-number-input label="Selling Price" placeholder="0.00" [decimalPlaces]="2" [viewMode]="readonly()" formControlName="selling_price" />
+                            <l-number-input label="MRP" placeholder="0.00" [decimalPlaces]="2" [viewMode]="readonly()" formControlName="mrp" />
+                            <l-number-input label="Minimum Stock" placeholder="0" [viewMode]="readonly()" formControlName="min_stock" />
+                            <l-number-input label="Maximum Stock" placeholder="0" [viewMode]="readonly()" formControlName="max_stock" />
+                        </div>
+                    </l-card>
+
+                    <l-textarea
+                        class="remarks"
+                        label="Remarks"
+                        placeholder="Enter remarks"
+                        [rows]="2"
+                        [viewMode]="readonly()"
+                        formControlName="remarks"
+                    />
+                </div>
+
+                <div class="column">
+                    <l-card class="section" padding="md">
+                        <h3 class="section-title">Product Settings</h3>
+                        <div class="toggles">
+                            <l-toggle label="Active" labelPosition="left" [viewMode]="readonly()" formControlName="is_active" />
+                            <l-toggle label="Purchasable" labelPosition="left" [viewMode]="readonly()" formControlName="purchasable" />
+                            <l-toggle label="Sellable" labelPosition="left" [viewMode]="readonly()" formControlName="sellable" />
+                            <l-toggle label="Service Item" labelPosition="left" [viewMode]="readonly()" formControlName="service_item" />
+                            <l-toggle label="Batch Wise Stock" labelPosition="left" [viewMode]="readonly()" formControlName="is_batch_available" />
+                            <l-toggle label="Has Expiry Date" labelPosition="left" [viewMode]="readonly()" formControlName="has_expiry_date" />
+                            <l-toggle label="Has Manufacturing Date" labelPosition="left" [viewMode]="readonly()" formControlName="has_manufacturing_date" />
+                        </div>
+                    </l-card>
+
+                    <l-card class="section" padding="md">
+                        <div class="section-head">
+                            <div>
+                                <h3 class="section-title">Bonus Scheme</h3>
+                                <p class="hint">Buy at least the minimum quantity, get the bonus quantity free.</p>
+                            </div>
+                            @if (!readonly()) {
+                                <l-button class="add" variant="outlined-primary" (click)="addBonus()">
+                                    <l-icon name="add" [size]="16" color="inherit" />
+                                    Add Bonus
+                                </l-button>
+                            }
+                        </div>
+
+                        @if (bonuses().length) {
+                            <l-table class="bonuses" [columns]="bonusColumns()" [data]="bonuses()" [rowKey]="trackBonus">
+                                <ng-template lTableCell="sn" let-index="index">{{ serial(index) }}</ng-template>
+
+                                <ng-template lTableCell="min_quantity" let-row>
+                                    <l-number-input placeholder="Min. Quantity" [viewMode]="readonly()" [formControl]="row.controls.min_quantity" />
+                                </ng-template>
+
+                                <ng-template lTableCell="bonus_quantity" let-row>
+                                    <l-number-input placeholder="Bonus Quantity" [viewMode]="readonly()" [formControl]="row.controls.bonus_quantity" />
+                                </ng-template>
+
+                                <ng-template lTableCell="actions" let-row>
+                                    <l-button class="remove" variant="ghost" size="sm" [rounded]="true" aria-label="Remove bonus" (click)="removeBonus(row)">
+                                        <l-icon name="trash" [size]="16" color="inherit" />
+                                    </l-button>
+                                </ng-template>
+                            </l-table>
+                        } @else {
+                            <p class="empty">No bonus scheme.</p>
+                        }
+                    </l-card>
+                </div>
+            </form>
+        </l-skeleton>
+    </div>
+
+    <footer class="foot">
+        @if (readonly()) {
+            <l-button variant="outlined" (click)="close()">Close</l-button>
+            @if (canEdit()) {
+                <l-button variant="primary" [disabled]="loading()" (click)="startEdit()">
+                    <l-icon name="edit" [size]="18" color="inherit" />
+                    Edit
+                </l-button>
+            }
+        } @else {
+            <l-button variant="outlined" (click)="close()">Cancel</l-button>
+            <l-button variant="primary" [disabled]="saving() || loading()" (click)="save()">
+                {{ saving() ? 'Saving…' : mode() === 'add' ? 'Add' : 'Update' }}
+            </l-button>
+        }
+    </footer>
+</div>
