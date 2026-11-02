@@ -8,6 +8,8 @@ import com.sandipsky.inventory_system.features.purchase.purchase_return.entities
 import com.sandipsky.inventory_system.features.purchase.purchase_entry.entities.MasterPurchaseEntry;
 import com.sandipsky.inventory_system.features.purchase.purchase_entry.repositories.MasterPurchaseEntryRepository;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,6 +76,9 @@ public class PurchaseReturnService {
 
     @Autowired
     private DocumentNumberingService documentNumberService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private final SpecificationBuilder<MasterPurchaseReturn> specBuilder = new SpecificationBuilder<>();
 
@@ -145,6 +150,10 @@ public class PurchaseReturnService {
         }
 
         createJournalEntries(savedEntry);
+
+        notificationService.notifyActivity(NotificationType.PURCHASE_RETURN, NotificationService.INFO,
+                "Purchase return added", NotificationService.documentMessage(savedEntry.getSystemEntryNo(),
+                        "to " + savedEntry.getVendor().getName(), savedEntry.getGrandTotal()));
 
         return savedEntry;
     }
@@ -224,6 +233,10 @@ public class PurchaseReturnService {
 
         deleteJournalEntries(id);
         repository.deleteById(id);
+
+        notificationService.notifyActivity(NotificationType.PURCHASE_RETURN, NotificationService.WARN,
+                "Purchase return deleted", NotificationService.documentMessage(masterPurchaseReturn.getSystemEntryNo(),
+                        "to " + masterPurchaseReturn.getVendor().getName(), masterPurchaseReturn.getGrandTotal()));
     }
 
     private void rejectDuplicateBatches(List<PurchaseReturnEntryDTO> lines) {

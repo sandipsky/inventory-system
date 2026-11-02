@@ -7,6 +7,8 @@ import com.sandipsky.inventory_system.features.sales.sales_entry.dtos.MasterSale
 import com.sandipsky.inventory_system.features.sales.sales_entry.entities.MasterSalesEntry;
 import com.sandipsky.inventory_system.features.sales.sales_return.repositories.MasterSalesReturnRepository;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationType;
 
 import java.util.List;
 
@@ -77,6 +79,9 @@ public class SalesEntryService {
 
     @Autowired
     private DocumentNumberingService documentNumberService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private final SpecificationBuilder<MasterSalesEntry> specBuilder = new SpecificationBuilder<>();
 
@@ -152,6 +157,10 @@ public class SalesEntryService {
         createJournalEntries(savedEntry);
         maintainDueInvoice(savedEntry);
 
+        notificationService.notifyActivity(NotificationType.SALES_ENTRY, NotificationService.INFO,
+                "Sales invoice added", NotificationService.documentMessage(savedEntry.getSystemEntryNo(),
+                        "to " + savedEntry.getCustomer().getName(), savedEntry.getGrandTotal()));
+
         return savedEntry;
     }
 
@@ -180,6 +189,15 @@ public class SalesEntryService {
         masterSalesEntry.setCancelled(true);
         masterSalesEntry.setCancelRemarks(masterSalesEntryDTO.getCancelRemarks());
         repository.save(masterSalesEntry);
+
+        notificationService.notifyActivity(NotificationType.SALES_ENTRY, NotificationService.WARN,
+                "Sales invoice cancelled", NotificationService.documentMessage(masterSalesEntry.getSystemEntryNo(),
+                        "to " + masterSalesEntry.getCustomer().getName(), masterSalesEntry.getGrandTotal())
+                        + reason(masterSalesEntry.getCancelRemarks()));
+    }
+
+    private static String reason(String cancelRemarks) {
+        return cancelRemarks == null || cancelRemarks.isBlank() ? "" : " Reason: " + cancelRemarks.trim();
     }
 
     // Credit sales create a due invoice that payments are later adjusted against

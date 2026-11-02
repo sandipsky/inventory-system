@@ -6,6 +6,8 @@ import com.sandipsky.inventory_system.features.inventory.stock_adjustment.entiti
 import com.sandipsky.inventory_system.features.inventory.stock_adjustment.repositories.MasterStockAdjustmentRepository;
 import com.sandipsky.inventory_system.features.inventory.stock_adjustment.repositories.StockAdjustmentEntryRepository;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +51,9 @@ public class StockAdjustmentService {
 
     @Autowired
     private DocumentNumberingService documentNumberService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private final SpecificationBuilder<MasterStockAdjustment> specBuilder = new SpecificationBuilder<>();
 
@@ -115,6 +120,10 @@ public class StockAdjustmentService {
             adjustmentEntry.setBatch(batch);
             stockAdjustmentEntryRepository.save(adjustmentEntry);
         }
+
+        notificationService.notifyActivity(NotificationType.STOCK_ADJUSTMENT, NotificationService.INFO,
+                "Stock adjustment added", adjustmentMessage(savedEntry.getSystemEntryNo(), lines.size(),
+                        savedEntry.getRemarks()));
 
         return savedEntry;
     }
@@ -188,6 +197,16 @@ public class StockAdjustmentService {
             stockAdjustmentEntryRepository.deleteById(item.getId());
         }
         repository.deleteById(id);
+
+        notificationService.notifyActivity(NotificationType.STOCK_ADJUSTMENT, NotificationService.WARN,
+                "Stock adjustment deleted", adjustmentMessage(masterStockAdjustment.getSystemEntryNo(),
+                        masterStockAdjustment.getStockAdjustmentEntries().size(), masterStockAdjustment.getRemarks()));
+    }
+
+    // "SA-000004, 3 lines: Damaged in transit."
+    private static String adjustmentMessage(String systemEntryNo, int lines, String remarks) {
+        String text = NotificationService.docNo(systemEntryNo) + ", " + lines + (lines == 1 ? " line" : " lines");
+        return remarks == null || remarks.isBlank() ? text + "." : text + ": " + remarks.trim();
     }
 
     private void rejectDuplicateBatches(List<StockAdjustmentEntryDTO> lines) {

@@ -8,6 +8,8 @@ import com.sandipsky.inventory_system.features.sales.sales_return.entities.Maste
 import com.sandipsky.inventory_system.features.sales.sales_entry.entities.MasterSalesEntry;
 import com.sandipsky.inventory_system.features.sales.sales_entry.repositories.MasterSalesEntryRepository;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationType;
 
 import java.util.List;
 
@@ -73,6 +75,9 @@ public class SalesReturnService {
 
     @Autowired
     private DocumentNumberingService documentNumberService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private final SpecificationBuilder<MasterSalesReturn> specBuilder = new SpecificationBuilder<>();
 
@@ -144,6 +149,10 @@ public class SalesReturnService {
 
         createJournalEntries(savedEntry);
 
+        notificationService.notifyActivity(NotificationType.SALES_RETURN, NotificationService.INFO,
+                "Sales return added", NotificationService.documentMessage(savedEntry.getSystemEntryNo(),
+                        "from " + savedEntry.getCustomer().getName(), savedEntry.getGrandTotal()));
+
         return savedEntry;
     }
 
@@ -167,6 +176,15 @@ public class SalesReturnService {
         masterSalesReturn.setCancelled(true);
         masterSalesReturn.setCancelRemarks(dto.getCancelRemarks());
         repository.save(masterSalesReturn);
+
+        notificationService.notifyActivity(NotificationType.SALES_RETURN, NotificationService.WARN,
+                "Sales return cancelled", NotificationService.documentMessage(masterSalesReturn.getSystemEntryNo(),
+                        "from " + masterSalesReturn.getCustomer().getName(), masterSalesReturn.getGrandTotal())
+                        + reason(masterSalesReturn.getCancelRemarks()));
+    }
+
+    private static String reason(String cancelRemarks) {
+        return cancelRemarks == null || cancelRemarks.isBlank() ? "" : " Reason: " + cancelRemarks.trim();
     }
 
     private void rejectDuplicateBatches(List<SalesReturnEntryDTO> lines) {

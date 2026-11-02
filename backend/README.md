@@ -154,6 +154,7 @@ A quick map of the main API areas:
 - **Accounting** — chart of accounts, journal vouchers, payments, opening balances
 - **Reports** — purchase/sales registers, stock, ledgers, trial balance, dues
 - **Admin** — users (with profile images), roles & permissions, document numbering, settings
+- **Notifications** — new documents, cancellations and low stock (below the *Low Stock Quantity* setting), stored per user and pushed live over a WebSocket at `ws://localhost:8080/ws/notifications`. The socket is part of this app and uses the same port, so there is nothing extra to start.
 
 Saving a purchase or sales entry automatically updates stock **and** posts the matching accounting journal — everything stays in balance without extra steps.
 

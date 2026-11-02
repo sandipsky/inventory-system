@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.product.entities;
+import com.sandipsky.inventory_system.features.notification.services.StockChangeListener;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,6 +10,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@EntityListeners(StockChangeListener.class)
 @Table(name = "product_stock", uniqueConstraints = {
         @UniqueConstraint(name = "unique_product_batch_no", columnNames = { "product_id", "batchNo" }) })
 public class ProductStock {
@@ -30,4 +33,8 @@ public class ProductStock {
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
+
+    // The quantity as last loaded or saved, so StockChangeListener can tell how much a write changed it
+    @Transient
+    private Double savedQuantity;
 }

@@ -6,6 +6,8 @@ import com.sandipsky.inventory_system.features.purchase.purchase_entry.repositor
 import com.sandipsky.inventory_system.features.purchase.purchase_entry.dtos.MasterPurchaseEntryDTO;
 import com.sandipsky.inventory_system.features.purchase.purchase_entry.entities.MasterPurchaseEntry;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,6 +76,9 @@ public class PurchaseEntryService {
 
     @Autowired
     private DocumentNumberingService documentNumberService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private final SpecificationBuilder<MasterPurchaseEntry> specBuilder = new SpecificationBuilder<>();
 
@@ -203,6 +208,10 @@ public class PurchaseEntryService {
             purchaseEntryRepository.save(purchaseEntry);
         }
 
+        notificationService.notifyActivity(NotificationType.PURCHASE_ENTRY, NotificationService.INFO,
+                "Purchase entry added", NotificationService.documentMessage(savedEntry.getSystemEntryNo(),
+                        "from " + vendor.getName(), savedEntry.getGrandTotal()));
+
         return savedEntry;
     }
 
@@ -319,6 +328,10 @@ public class PurchaseEntryService {
         deleteJournalEntries(id);
         removeDueInvoice(masterPurchaseEntry.getSystemEntryNo());
         repository.deleteById(id);
+
+        notificationService.notifyActivity(NotificationType.PURCHASE_ENTRY, NotificationService.WARN,
+                "Purchase entry deleted", NotificationService.documentMessage(masterPurchaseEntry.getSystemEntryNo(),
+                        "from " + masterPurchaseEntry.getVendor().getName(), masterPurchaseEntry.getGrandTotal()));
     }
 
     private void rejectDuplicateBatches(List<PurchaseEntryDTO> lines) {

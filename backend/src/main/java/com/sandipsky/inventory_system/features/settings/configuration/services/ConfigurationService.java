@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.sandipsky.inventory_system.common.exception.BadRequestException;
 import com.sandipsky.inventory_system.common.exception.ResourceNotFoundException;
+import com.sandipsky.inventory_system.features.notification.services.LowStockService;
 
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class ConfigurationService {
         if (!existing.isEditable()) {
             throw new BadRequestException("Configuration '" + existing.getName() + "' is not editable");
         }
-        existing.setValue(dto.getValue());
+        existing.setValue(validValue(existing, dto.getValue()));
         return repository.save(existing);
     }
 
@@ -40,9 +41,18 @@ public class ConfigurationService {
                 throw new BadRequestException(
                         "Configuration '" + existing.getName() + "' is not editable");
             }
-            existing.setValue(dto.getValue());
+            existing.setValue(validValue(existing, dto.getValue()));
             repository.save(existing);
         }
+    }
+
+    // The low stock quantity is blank (alerts off) or a number of at least 0
+    private String validValue(Configuration setting, String value) {
+        if (LowStockService.SETTING.equals(setting.getName()) && value != null && !value.isBlank()
+                && LowStockService.threshold(value) == null) {
+            throw new BadRequestException(setting.getLabel() + " must be a number of 0 or more, or blank");
+        }
+        return value;
     }
 
     private Configuration resolve(ConfigurationDTO dto) {

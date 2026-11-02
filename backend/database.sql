@@ -136,6 +136,24 @@ FOR EACH ROW BEGIN
   UPDATE user SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
 END;
 
+-- One row per recipient. created_at is an ISO-8601 UTC instant (2026-11-02T08:20:00Z).
+-- ref_key names what a stock alert is about (product:12): a newer alert updates the unread one.
+CREATE TABLE notification (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT,
+  actor TEXT,
+  ref_key TEXT,
+  is_read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+);
+
+CREATE INDEX notification_user_created ON notification (user_id, created_at);
+
 CREATE TABLE vendor (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -624,7 +642,8 @@ INSERT INTO configuration (name, label, value, is_editable) VALUES
 ('company_email', 'Company Email', 'test@company.com', 1),
 ('calendar_type', 'Calendar Type', 'BS', 1),
 ('default_rounding', 'Default Rounding', '1', 1),
-('fiscal_year', 'Fiscal Year', '2081', 1);
+('fiscal_year', 'Fiscal Year', '2081', 1),
+('low_stock_quantity', 'Low Stock Quantity', '10', 1);
 
 CREATE TABLE operation (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

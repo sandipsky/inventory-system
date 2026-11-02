@@ -8,6 +8,8 @@ import com.sandipsky.inventory_system.features.accounting.payment.repositories.A
 import com.sandipsky.inventory_system.features.accounting.payment.repositories.MasterPaymentRepository;
 import com.sandipsky.inventory_system.features.accounting.payment.repositories.PaymentDetailRepository;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationService;
+import com.sandipsky.inventory_system.features.notification.services.NotificationType;
 
 import java.util.List;
 
@@ -66,6 +68,9 @@ public class PaymentService {
 
     @Autowired
     private DocumentNumberingService documentNumberService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private final SpecificationBuilder<MasterPayment> specBuilder = new SpecificationBuilder<>();
 
@@ -127,6 +132,10 @@ public class PaymentService {
         saveDetails(dto.getPaymentDetails(), savedEntry.getId());
         createJournalEntries(savedEntry);
 
+        notificationService.notifyActivity(NotificationType.payment(savedEntry.getType()), NotificationService.INFO,
+                "Vendor".equals(savedEntry.getType()) ? "Payment sent" : "Payment received",
+                paymentMessage(savedEntry));
+
         return savedEntry;
     }
 
@@ -172,6 +181,17 @@ public class PaymentService {
 
         deleteJournalEntries(id);
         repository.deleteById(id);
+
+        notificationService.notifyActivity(NotificationType.payment(masterPayment.getType()), NotificationService.WARN,
+                "Payment deleted", paymentMessage(masterPayment));
+    }
+
+    // "P-000003 to Himalayan Distributors, Rs. 5,000.00."
+    private static String paymentMessage(MasterPayment payment) {
+        String party = "Vendor".equals(payment.getType())
+                ? "to " + payment.getVendor().getName()
+                : "from " + payment.getCustomer().getName();
+        return NotificationService.documentMessage(payment.getSystemEntryNo(), party, payment.getAmount());
     }
 
     // Applies each allocation to its due invoice and returns the total adjusted amount.

@@ -26,8 +26,9 @@ All examples were run against a fresh database. Your IDs will be different, so a
 13. [Journals and opening balance](#13-journals-and-opening-balance)
 14. [Reports](#14-reports)
 15. [Dashboard](#15-dashboard)
-16. [Users and roles](#16-users-and-roles)
-17. [A typical first run](#17-a-typical-first-run)
+16. [Notifications](#16-notifications): the feed and the live socket
+17. [Users and roles](#17-users-and-roles)
+18. [A typical first run](#18-a-typical-first-run)
 
 ---
 
@@ -170,6 +171,7 @@ Every endpoint checks the user's role for a specific operation (e.g. `CreateProd
 The `admin` user has every permission. A few endpoints only need a valid login, with no operation:
 - `/getUserRoleOperations`
 - the [dropdowns](#4-dropdowns), because many forms use them
+- [`/notifications`](#16-notifications), each user's own
 
 `GET /configurations` and `POST /login` need no login at all.
 
@@ -235,9 +237,12 @@ Useful for a frontend to decide which menus and buttons to show.
 [
   { "id": 1, "name": "company_name", "label": "Company Name", "value": "Test Pvt. Ltd.", "is_editable": true },
   { "id": 7, "name": "calendar_type", "label": "Calendar Type", "value": "BS", "is_editable": true },
-  { "id": 8, "name": "default_rounding", "label": "Default Rounding", "value": "1", "is_editable": true }
+  { "id": 8, "name": "default_rounding", "label": "Default Rounding", "value": "1", "is_editable": true },
+  { "id": 10, "name": "low_stock_quantity", "label": "Low Stock Quantity", "value": "10", "is_editable": true }
 ]
 ```
+
+`low_stock_quantity` drives the [low stock notifications](#16-notifications). It must be a number of 0 or more, or blank to turn them off; anything else fails with **400** `"Low Stock Quantity must be a number of 0 or more, or blank"`. A database created before this setting existed gets it (value `10`) on the next start.
 
 ### Update one setting
 
@@ -1369,7 +1374,82 @@ Active products that are not service items, with every batch's stock added up. `
 
 ---
 
-## 16. Users and roles
+## 16. Notifications
+
+Every user gets their own copy of a notification, so reading and clearing are per user. They are sent once the save that caused them commits; a save that fails sends nothing. Only users whose role holds the View permission of what it reports receive it:
+
+| `type` | Sent when | To users with |
+|---|---|---|
+| `purchase_entry` | A purchase entry is added (`info`) or deleted (`warn`) | `ViewPurchaseEntry` |
+| `purchase_return` | A purchase return is added or deleted | `ViewPurchaseReturn` |
+| `sales_entry` | A sale is added or cancelled | `ViewSalesEntries` |
+| `sales_return` | A sales return is added or cancelled | `ViewSalesReturns` |
+| `vendor_payment` / `customer_payment` | A payment is added or deleted | `ViewVendorPayment` / `ViewCustomerPayment` |
+| `stock_adjustment` | A stock adjustment is added or deleted | `ViewStockAdjustment` |
+| `low_stock` | A save lowers a product's stock (all batches added up) to the `low_stock_quantity` setting or below (`warn`) | `ViewStockEdit` |
+| `out_of_stock` | A save lowers a product's stock to 0 (`error`) | `ViewStockEdit` |
+
+- **Document notifications skip the user who made the change** and name them in `actor`. Editing a document sends none.
+- **Stock alerts go to everyone with `ViewStockEdit`**, the user who made the change included, and have no `actor`. Any save that lowers stock can raise one: sales, purchase returns, stock adjustments, stock edits, cancelled sales returns, edited or deleted purchases. Saves that raise stock never do. Active products that are not service items only.
+- **An unread stock alert is updated, not repeated:** while a user hasn't read the alert about a product, the next one about it updates that notification (same `id`, new `type`, `message` and `created_at`). Once read, the next fall adds a new one.
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/notifications` | Your 50 newest notifications, newest first |
+| `PUT` | `/notifications/{id}/read` | Mark one read (404 if it isn't yours) |
+| `PUT` | `/notifications/read` | Mark all read; `post_data_id` is how many changed |
+| `DELETE` | `/notifications` | Delete all of yours; `post_data_id` is how many |
+| WebSocket | `/ws/notifications?token=<jwt>` | New notifications as they happen |
+
+`GET /notifications`
+
+```json
+[
+  {
+    "id": 12,
+    "type": "low_stock",
+    "severity": "warn",
+    "title": "Low stock",
+    "message": "Samsung Galaxy S24 is down to 8 Piece, at or below the low stock quantity of 10.",
+    "actor": null,
+    "is_read": false,
+    "created_at": "2026-11-02T14:43:16Z"
+  },
+  {
+    "id": 11,
+    "type": "sales_entry",
+    "severity": "info",
+    "title": "Sales invoice added",
+    "message": "SI-000001 to Gadget Retailers, Rs. 200.00.",
+    "actor": "Ram Shrestha",
+    "is_read": false,
+    "created_at": "2026-11-02T14:43:15Z"
+  }
+]
+```
+
+`severity` is `info`, `warn` or `error`. `created_at` is a UTC instant. A cancelled sale or sales return ends its `message` with `Reason: …`.
+
+### The live socket
+
+The socket is served by the API itself, on the same port; there is no separate server to run. Browsers can't send headers on a WebSocket, so the token goes in the query string:
+
+```js
+const socket = new WebSocket(`ws://localhost:8080/ws/notifications?token=${token}`);
+socket.onmessage = e => console.log(JSON.parse(e.data));
+```
+
+A missing, invalid or expired token answers the handshake with **401**. The socket only sends; each message is one notification, the same shape as in the list:
+
+```json
+{ "event": "notification", "notification": { "id": 12, "type": "low_stock", "severity": "warn", "...": "..." } }
+```
+
+A notification whose `id` you already have is an updated stock alert: replace it. A user may have several sockets open (tabs); each gets every message. Once the token the socket opened with expires, the next message closes it with code **4401** instead. Nothing sent while a socket is closed is replayed on it, so reload `GET /notifications` each time it opens.
+
+---
+
+## 17. Users and roles
 
 ### Roles
 
@@ -1470,7 +1550,7 @@ To show the picture, request `image_url` from the server, e.g. `GET http://local
 
 ---
 
-## 17. A typical first run
+## 18. A typical first run
 
 The order to set things up on a fresh database:
 

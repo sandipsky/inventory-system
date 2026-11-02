@@ -40,4 +40,14 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
             """)
     boolean existsByUsernameAndOperation(@Param("username") String username,
             @Param("operationName") String operationName);
+
+    @Query("""
+                SELECT u
+                FROM User u
+                JOIN u.role r
+                JOIN r.operations o
+                WHERE u.isActive = true
+                  AND o.name = :operationName
+            """)
+    List<User> findActiveByOperation(@Param("operationName") String operationName);
 }

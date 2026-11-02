@@ -16,6 +16,7 @@ import com.sandipsky.inventory_system.common.exception.BadRequestException;
 import com.sandipsky.inventory_system.common.exception.DuplicateResourceException;
 import com.sandipsky.inventory_system.common.exception.ResourceNotFoundException;
 import com.sandipsky.inventory_system.features.role_operations.repositories.RoleRepository;
+import com.sandipsky.inventory_system.features.notification.repositories.NotificationRepository;
 import com.sandipsky.inventory_system.common.util.SpecificationBuilder;
 
 import org.springframework.data.domain.*;
@@ -40,6 +41,9 @@ public class UserService {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -107,10 +111,12 @@ public class UserService {
         return repository.save(existing);
     }
 
+    @Transactional
     public void deleteUser(int id) {
         User user = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         deleteImageFileIfExists(user.getImageUrl());
+        notificationRepository.deleteByUserId(id);
         repository.deleteById(id);
     }
 

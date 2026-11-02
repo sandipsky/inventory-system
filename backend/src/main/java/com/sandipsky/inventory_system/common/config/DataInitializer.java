@@ -1,5 +1,8 @@
 package com.sandipsky.inventory_system.common.config;
 
+import com.sandipsky.inventory_system.features.notification.services.LowStockService;
+import com.sandipsky.inventory_system.features.settings.configuration.entities.Configuration;
+import com.sandipsky.inventory_system.features.settings.configuration.repositories.ConfigurationRepository;
 import com.sandipsky.inventory_system.features.user.dtos.UserDTO;
 import com.sandipsky.inventory_system.features.role_operations.repositories.RoleRepository;
 import com.sandipsky.inventory_system.features.user.repositories.UserRepository;
@@ -20,6 +23,9 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private ConfigurationRepository configurationRepository;
+
     @Override
     public void run(String... args) {
         if (!userRepository.existsByUsername("admin") && !userRepository.existsByEmail("admin@admin.com")) {
@@ -34,6 +40,15 @@ public class DataInitializer implements CommandLineRunner {
             adminDto.setRemarks("Admin User");
             roleRepository.findByName("Admin").ifPresent(r -> adminDto.setRoleId(r.getId()));
             userService.saveUser(adminDto, null);
+        }
+
+        // Databases created before low stock notifications lack the setting (database.sql seeds it)
+        if (configurationRepository.findByName(LowStockService.SETTING).isEmpty()) {
+            Configuration lowStock = new Configuration();
+            lowStock.setName(LowStockService.SETTING);
+            lowStock.setLabel("Low Stock Quantity");
+            lowStock.setValue("10");
+            configurationRepository.save(lowStock);
         }
     }
 }
