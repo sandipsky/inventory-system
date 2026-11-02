@@ -15,6 +15,7 @@ const SETTINGS: Configuration[] = [
   { id: 8, name: 'default_rounding', label: 'Default Rounding', value: '1', is_editable: true },
   { id: 9, name: 'fiscal_year', label: 'Fiscal Year', value: '2081', is_editable: false },
   { id: 10, name: 'invoice_footer', label: 'Invoice Footer', value: 'Thank you', is_editable: true },
+  { id: 11, name: 'low_stock_quantity', label: 'Low Stock Quantity', value: '10', is_editable: true },
 ];
 
 const URL = `${environment.apiUrl}/configurations`;
@@ -83,6 +84,24 @@ describe('ConfigurationForm', () => {
     expect(component.editing()).toBe(false);
     expect(component.settings()[0].value).toBe('Shakya Traders');
     expect(component.form.controls['company_name'].value).toBe('Shakya Traders');
+  });
+
+  it('edits the low stock quantity as a number, blank turning it off', async () => {
+    await setup(['ViewConfiguration', 'EditConfiguration']);
+    const control = component.form.controls['low_stock_quantity'];
+    expect(control.value).toBe(10);
+    expect(component.sections()[1].rows.map(row => row.setting.name)).toContain('low_stock_quantity');
+
+    component.startEdit();
+    control.setValue(null);
+    component.save();
+
+    const req = saveRequest();
+    expect(req.request.body).toEqual([{ ...SETTINGS[6], value: '' }]);
+    req.flush({ success: true, message: 'Configurations updated successfully' });
+    await fixture.whenStable();
+    expect(control.value).toBeNull();
+    expect(text()).toContain('Off');
   });
 
   it('leaves settings the API locks out of the form value', async () => {

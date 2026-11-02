@@ -1,15 +1,26 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Button, Card, EmailInput, Icon, NotificationService, Select, Skeleton, TextInput, Toggle } from '@lumen-ui/angular';
+import {
+  Button,
+  Card,
+  EmailInput,
+  Icon,
+  NotificationService,
+  NumberInput,
+  Select,
+  Skeleton,
+  TextInput,
+  Toggle,
+} from '@lumen-ui/angular';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
 import { Configuration, OTHER_FIELD, SETTING_FIELDS, SETTING_SECTIONS, SettingField } from '../configuration.model';
 import { ConfigurationService } from '../configuration.service';
 
-/** A text field holds a string, a select `null` until picked, a toggle a boolean. */
-type ControlValue = string | boolean | null;
+/** A text field holds a string, a select `null` until picked, a toggle a boolean, a number field a number or `null`. */
+type ControlValue = string | boolean | number | null;
 
 interface SettingRow {
   setting: Configuration;
@@ -26,7 +37,7 @@ interface SettingRow {
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Button, Card, EmailInput, Icon, ReactiveFormsModule, Select, Skeleton, TextInput, Toggle],
+  imports: [Button, Card, EmailInput, Icon, NumberInput, ReactiveFormsModule, Select, Skeleton, TextInput, Toggle],
   selector: 'app-configuration-form',
   styleUrl: './configuration-form.scss',
   templateUrl: './configuration-form.html',
@@ -186,13 +197,18 @@ function controlValue(setting: Configuration, field: SettingField): ControlValue
       return value === '1' || value.toLowerCase() === 'true';
     case 'select':
       return value || null;
+    case 'number': {
+      const number = Number(value);
+      return value && Number.isFinite(number) ? number : null;
+    }
     default:
       return value;
   }
 }
 
-/** The text the API stores: toggles as `1` / `0`. */
+/** The text the API stores: toggles as `1` / `0`, numbers as digits. */
 function storedValue(value: ControlValue): string {
   if (typeof value === 'boolean') return value ? '1' : '0';
+  if (typeof value === 'number') return String(value);
   return value?.trim() ?? '';
 }

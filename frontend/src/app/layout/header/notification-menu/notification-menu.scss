@@ -124,11 +124,6 @@
           display: inline-flex;
         }
 
-        &.success {
-          background: var(--success-bg);
-          color: var(--success);
-        }
-
         &.warn {
           background: var(--warn-bg);
           color: var(--warn);

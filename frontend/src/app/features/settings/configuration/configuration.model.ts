@@ -17,8 +17,8 @@ export const SETTING_SECTIONS: { key: SettingSection; title: string; subtitle: s
   { key: 'other', title: 'Other Settings', subtitle: 'Settings without a dedicated field' },
 ];
 
-/** How a setting is edited. A `toggle` stores `1` or `0`. */
-export type SettingKind = 'text' | 'email' | 'select' | 'toggle';
+/** How a setting is edited. A `toggle` stores `1` or `0`; a blank `number` stores an empty value. */
+export type SettingKind = 'text' | 'email' | 'select' | 'toggle' | 'number';
 
 export interface SettingField {
   section: SettingSection;
@@ -29,7 +29,7 @@ export interface SettingField {
   /** Spans two grid columns. */
   wide?: boolean;
   required?: boolean;
-  /** Line under a `toggle`, saying what it does. */
+  /** Line under a `toggle` or `number`, saying what it does. */
   hint?: string;
 }
 
@@ -67,6 +67,12 @@ export const SETTING_FIELDS: Record<string, SettingField> = {
     section: 'preferences',
     kind: 'toggle',
     hint: 'When on, new invoices start with Rounding Amount on, rounding the grand total to a whole amount.',
+  },
+  low_stock_quantity: {
+    section: 'preferences',
+    kind: 'number',
+    placeholder: 'e.g. 10',
+    hint: "Notify when a sale or stock change leaves a product's total stock at or below this. Leave blank to turn low stock notifications off.",
   },
 };
 

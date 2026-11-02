@@ -64,6 +64,20 @@
                                                 [formControlName]="row.setting.name"
                                             />
                                         }
+                                        @case ('number') {
+                                            <div class="number" [class.wide]="row.field.wide">
+                                                <l-number-input
+                                                    [label]="row.label"
+                                                    [placeholder]="row.field.placeholder ?? ''"
+                                                    [viewMode]="isReadonly(row)"
+                                                    [viewValue]="row.setting.value ? undefined : 'Off'"
+                                                    [formControlName]="row.setting.name"
+                                                />
+                                                @if (row.field.hint) {
+                                                    <p class="hint">{{ row.field.hint }}</p>
+                                                }
+                                            </div>
+                                        }
                                         @case ('toggle') {
                                             <div class="toggle wide">
                                                 <l-toggle

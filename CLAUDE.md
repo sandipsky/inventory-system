@@ -28,7 +28,7 @@ Always work on the `main` branch. Don't create feature branches; commits go on `
 ```
 src/environments/environment.ts   apiUrl
 src/app/auth/                     AuthService, guards, interceptor, login page, auth.testing.ts (spec helpers)
-src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), header, profile/notification menus
+src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), header, profile/notification menus (notification-feed.ts: the live feed)
 src/app/features/<module>/        <module>.routes.ts, <module>.model.ts, <module>.service.ts, list + form components
 src/app/features/masters/         one list + one form for units, categories, packings, tax types (MASTERS config)
 src/app/features/party/           one list + one form for vendors and customers (PARTIES config), routed under /purchase and /sales
@@ -112,6 +112,13 @@ Returns name the document the goods came from: purchase returns a Ref. Purchase 
 - Each card reads one `/dashboard/…` endpoint (backend `features/dashboard`, section 15 of `endpoints.md`), which sums on the server. A card shows only when the role holds its endpoint's View operation (both stock cards need `ViewStockEdit`). An endpoint covering two document kinds answers `null` for the figure whose View operation is missing, and the card hides that tile or line too.
 - The server owns the periods: `purchase-vs-sales` picks the last 30 days, 12 weeks or 12 months and the card only labels the points; `near-expiry` takes `months` from today. The summaries take `fromDate`/`toDate`, which the card sets to the last N calendar months (`lastMonths`).
 - Charts are hand-drawn SVG (Lumen has none) in the `--chart-1…5` colors from `styles/colors.scss`. The chart's months are AD, while dates shown with `<app-date-text>` follow BS.
+
+### Notifications
+
+- The header bell (`layout/header/notification-menu/`) lists `GET /notifications` and receives new ones over `ws://…/ws/notifications?token=<jwt>` (section 16 of `endpoints.md`). The socket is served by the Spring Boot app on its own port, so there is no separate server to start. `NotificationFeed` sits in the menu's `providers`, so the socket closes with the shell on logout. It reloads the list each time the socket opens and reconnects with backoff while the token is valid.
+- `NOTIFICATION_KINDS` maps each backend `type` to its icon and page. Low stock and out of stock also pop up a toast. A pushed notification whose id is already listed replaces it: an unread stock alert is updated, not repeated.
+- Backend (`features/notification`): a create, cancel or delete calls `NotificationService.notifyActivity`. That sends after commit to users whose role holds the type's View operation, skipping whoever made the change. Stock alerts need no call: `StockChangeListener` sees every write to a batch quantity, and after commit `LowStockService` checks each product whose stock fell against the `low_stock_quantity` setting (blank turns alerts off).
+- Specs stub the socket with `FakeSocket` (`notification-feed.testing.ts`).
 
 ### Reports
 

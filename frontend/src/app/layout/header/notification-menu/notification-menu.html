@@ -39,20 +39,27 @@
           <li>
             <l-button
               class="row"
-              [class.unread]="!notification.read"
+              [class.unread]="!notification.is_read"
               variant="ghost"
               width="full"
               (click)="open(notification)"
             >
-              <span class="row-icon" [class]="'row-icon ' + notification.tone" aria-hidden="true">
-                <l-icon [name]="notification.icon" [size]="18" color="inherit" />
+              <span class="row-icon" [class]="'row-icon ' + notification.severity" aria-hidden="true">
+                <l-icon [name]="icon(notification)" [size]="18" color="inherit" />
               </span>
               <span class="row-body">
                 <span class="row-title">{{ notification.title }}</span>
-                <span class="row-message">{{ notification.message }}</span>
-                <span class="row-time">{{ timeAgo(notification.createdAt) }}</span>
+                @if (notification.message) {
+                  <span class="row-message">{{ notification.message }}</span>
+                }
+                <span class="row-time">
+                  @if (notification.actor) {
+                    {{ notification.actor }} ·
+                  }
+                  {{ timeAgo(notification.created_at) }}
+                </span>
               </span>
-              @if (!notification.read) {
+              @if (!notification.is_read) {
                 <span class="row-dot" aria-hidden="true"></span>
               }
             </l-button>
