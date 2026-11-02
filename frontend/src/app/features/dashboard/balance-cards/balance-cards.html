@@ -1,0 +1,50 @@
+<l-card class="card balance" padding="lg">
+    <span class="badge"><l-icon name="wallet" [size]="22" color="inherit" /></span>
+    <span class="label">Balance Summary</span>
+    @if (summary(); as summary) {
+        <span class="value">Rs. {{ summary.cash_balance | amount }}</span>
+    } @else if (loadError()) {
+        <span class="value">-</span>
+    } @else {
+        <l-skeleton class="value" width="160px" height="28px" />
+    }
+</l-card>
+
+<l-card class="card outstanding" padding="lg">
+    @if (loadError()) {
+        <p class="error">{{ loadError() }}</p>
+    } @else {
+        @for (item of outstanding(); track item.key) {
+            <div class="item">
+                <div class="top">
+                    <span class="badge" [class]="item.tone"><l-icon [name]="item.icon" [size]="20" color="inherit" /></span>
+                    @if (item.change !== null) {
+                        <div class="change" [class]="item.trend">
+                            <span class="figure">
+                                <span class="arrow">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                                        @if (item.change > 0) {
+                                            <path d="M3 9 9 3M4.5 3H9v4.5" />
+                                        } @else if (item.change < 0) {
+                                            <path d="M3 3l6 6M9 4.5V9H4.5" />
+                                        } @else {
+                                            <path d="M2 6h8M7 3l3 3-3 3" />
+                                        }
+                                    </svg>
+                                </span>
+                                {{ item.change > 0 ? '+' : '' }}{{ item.change | number: '1.0-0' }}%
+                            </span>
+                            <span class="since">vs last week</span>
+                        </div>
+                    }
+                </div>
+                <span class="label">{{ item.label }}</span>
+                @if (item.amount !== null) {
+                    <span class="value">Rs. {{ item.amount | amount }}</span>
+                } @else {
+                    <l-skeleton class="value" width="140px" height="24px" />
+                }
+            </div>
+        }
+    }
+</l-card>

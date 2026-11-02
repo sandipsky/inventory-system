@@ -1,0 +1,90 @@
+// The one stylesheet every dashboard card shares: a title and subtitle on the left, the card's
+// controls on the right, and the inline load error.
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.card {
+  display: block;
+  height: 100%;
+
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin-bottom: 16px;
+
+    // Wraps its subtitle before the controls drop to a line of their own.
+    .text {
+      flex: 1 1 160px;
+      min-width: 0;
+    }
+
+    .title {
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .subtitle {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+  }
+
+  // Global form styles make selects full width; keep the period pickers compact.
+  .period {
+    width: 128px;
+  }
+
+  .error {
+    color: var(--error);
+  }
+}
+
+// Square icon badge in front of a figure; the tone class picks its tint.
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+
+  l-icon {
+    display: inline-flex;
+  }
+
+  &.success {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  &.warn {
+    background: var(--warn-bg);
+    color: var(--warn);
+  }
+
+  &.info {
+    background: var(--info-bg);
+    color: var(--chart-1);
+  }
+
+  &.premium {
+    background: color-mix(in srgb, var(--premium) 10%, var(--bg-lightest));
+    color: var(--premium);
+  }
+}

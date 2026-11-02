@@ -35,6 +35,7 @@ src/app/features/party/           one list + one form for vendors and customers 
 src/app/features/accounting/      accounting.routes.ts; account/ (chart of accounts), journal/ (journal-lines.ts + JournalLinesTable, shared with
                                   opening-balance/), payment/ (vendor and customer payments, settlement.ts + InvoiceSettlement), payment-adjustment/
 src/app/features/inventory/       inventory.routes.ts, inventory.model.ts and one service each for opening-stock/, stock-adjustment/, stock-edit/
+src/app/features/dashboard/       one component per card, DashboardService (/dashboard), figures.ts (labels, periods), line-chart/ (SVG)
 src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
 src/app/features/settings/        configuration/ (company settings, SETTING_FIELDS picks each one's field) and document-numbering/ (view only)
 src/app/shared/components/        list-page-card, invoice-summary-card, summary-card, party-details-card, amount-totals, date-text, calculator, user-avatar, cancel-dialog
@@ -103,6 +104,12 @@ Returns name the document the goods came from: purchase returns a Ref. Purchase 
 
 - **Opening stock** and **stock edit** list the same rows: every product batch with its current stock (`StockBatch`). The API keeps no separate opening-stock record, so the opening stock list shows current quantities too. Both forms open in a 400px right drawer. Opening stock only adds (no edit or delete); the API answers 409 for a batch that already has stock. Stock edit gets the row in `DRAWER_DATA` and overwrites its quantity, prices and expiry by `product_id` and `batch_id`, leaving no history.
 - **Stock adjustments** are a document form like journals (date, number, remarks, no party). Each line picks a product batch and an `In` / `Out` `adjustment_type`. The API checks stock and, on edit or delete, reverses the earlier changes first; the form doesn't check stock itself.
+
+### Dashboard
+
+- Each card reads one `/dashboard/…` endpoint (backend `features/dashboard`, section 15 of `endpoints.md`), which sums on the server. A card shows only when the role holds its endpoint's View operation (both stock cards need `ViewStockEdit`). An endpoint covering two document kinds answers `null` for the figure whose View operation is missing, and the card hides that tile or line too.
+- The server owns the periods: `purchase-vs-sales` picks the last 30 days, 12 weeks or 12 months and the card only labels the points; `near-expiry` takes `months` from today. The summaries take `fromDate`/`toDate`, which the card sets to the last N calendar months (`lastMonths`).
+- Charts are hand-drawn SVG (Lumen has none) in the `--chart-1…5` colors from `styles/colors.scss`. The chart's months are AD, while dates shown with `<app-date-text>` follow BS.
 
 ### Master data forms
 

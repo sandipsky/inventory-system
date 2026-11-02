@@ -1,0 +1,40 @@
+<l-card class="card" padding="lg">
+    <div class="body">
+        <div class="head">
+            <div class="text">
+                <h2 class="title">Purchase vs Sales</h2>
+                <p class="subtitle">Grand total of purchases and sales over time; cancelled sales left out.</p>
+            </div>
+
+            <div class="controls">
+                <ul class="legend">
+                    @for (line of lines(); track line.name) {
+                        <li><span class="key" [style.background]="line.color"></span>{{ line.name }}</li>
+                    }
+                </ul>
+                <l-select
+                    class="period"
+                    aria-label="Interval"
+                    bindLabel="label"
+                    bindValue="value"
+                    [items]="intervals"
+                    [(ngModel)]="interval"
+                />
+            </div>
+        </div>
+
+        @if (loadError()) {
+            <p class="error">{{ loadError() }}</p>
+        } @else {
+            <app-line-chart
+                class="chart"
+                label="Purchase and sales grand totals"
+                emptyText="No purchases or sales in this period."
+                [class.loading]="loading()"
+                [labels]="chart().labels"
+                [titles]="chart().titles"
+                [series]="chart().series"
+            />
+        }
+    </div>
+</l-card>

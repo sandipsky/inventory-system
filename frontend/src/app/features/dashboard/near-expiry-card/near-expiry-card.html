@@ -1,0 +1,85 @@
+<l-card class="card" padding="lg">
+    <div class="head">
+        <div class="text">
+            <h2 class="title">Near Expiry Products</h2>
+            <p class="subtitle">Batches in stock that expire within the period, expired ones included.</p>
+        </div>
+        <div class="controls">
+            <l-select
+                class="period"
+                aria-label="Expiring within"
+                bindLabel="label"
+                bindValue="value"
+                [items]="monthOptions"
+                [(ngModel)]="months"
+            />
+            <l-button class="view-all" variant="outlined-primary" [disabled]="!batches()?.length" (click)="viewAll()">View all</l-button>
+        </div>
+    </div>
+
+    @if (loadError()) {
+        <p class="error">{{ loadError() }}</p>
+    } @else if (batches() === null) {
+        <div class="content">
+            <l-skeleton [circle]="true" [width]="ring.size + 'px'" [height]="ring.size + 'px'" />
+        </div>
+    } @else if (!batches()?.length) {
+        <p class="empty">
+            <l-icon name="verified_user" [size]="20" color="inherit" />
+            No batches in stock expire within {{ months() }} {{ months() === 1 ? 'month' : 'months' }}.
+        </p>
+    } @else {
+        <div class="content" [class.loading]="loading()">
+            <div class="ring" [style.width.px]="ring.size" [style.height.px]="ring.size">
+                <svg [attr.width]="ring.size" [attr.height]="ring.size" aria-hidden="true">
+                    <g [attr.transform]="'rotate(-90 ' + ring.size / 2 + ' ' + ring.size / 2 + ')'">
+                        @for (slice of slices(); track $index) {
+                            <circle
+                                class="slice"
+                                [class.dim]="active() !== null && active() !== $index"
+                                [attr.cx]="ring.size / 2"
+                                [attr.cy]="ring.size / 2"
+                                [attr.r]="ring.radius"
+                                [attr.stroke]="slice.color"
+                                [attr.stroke-width]="ring.stroke"
+                                [attr.stroke-dasharray]="slice.dash"
+                                [attr.stroke-dashoffset]="slice.offset"
+                                (pointerenter)="active.set($index)"
+                                (pointerleave)="active.set(null)"
+                            />
+                        }
+                    </g>
+                </svg>
+                <div class="middle">
+                    <span class="label">{{ center().label }}</span>
+                    <span class="value">{{ center().value | number: '1.0-2' }}</span>
+                </div>
+            </div>
+
+            <ul class="legend">
+                @for (slice of slices(); track $index) {
+                    <li
+                        class="item"
+                        [class.dim]="active() !== null && active() !== $index"
+                        (pointerenter)="active.set($index)"
+                        (pointerleave)="active.set(null)"
+                    >
+                        <span class="quantity">{{ slice.quantity | number: '1.0-2' }}</span>
+                        <span class="name">
+                            <span class="dot" [style.background]="slice.color"></span>
+                            <span class="text">{{ slice.name }}</span>
+                        </span>
+                        @if (slice.expiry) {
+                            <span class="expiry" [class.expired]="isExpired(slice.expiry)">
+                                {{ slice.batch }} · {{ isExpired(slice.expiry) ? 'Expired' : 'Exp' }}
+                                <app-date-text [date]="slice.expiry" />
+                            </span>
+                        } @else {
+                            <span class="expiry">Expiring later</span>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</l-card>

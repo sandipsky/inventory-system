@@ -1,0 +1,138 @@
+.content {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  transition: opacity 0.15s;
+
+  // The last batches stay, faded, while another period loads.
+  &.loading {
+    opacity: 0.5;
+  }
+}
+
+.ring {
+  position: relative;
+  flex: 0 0 auto;
+
+  .slice {
+    fill: none;
+    stroke-linecap: round;
+    transition: opacity 0.15s;
+
+    &.dim {
+      opacity: 0.35;
+    }
+  }
+
+  .middle {
+    position: absolute;
+    inset: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border-radius: 50%;
+    background: var(--bg-light);
+    text-align: center;
+    pointer-events: none;
+
+    .label {
+      max-width: 100%;
+      overflow: hidden;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .value {
+      color: var(--text-primary);
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 28px;
+    }
+  }
+}
+
+.legend {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px 20px;
+  min-width: 0;
+  list-style: none;
+
+  .item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    transition: opacity 0.15s;
+
+    &.dim {
+      opacity: 0.45;
+    }
+  }
+
+  .quantity {
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--text-secondary);
+
+    .dot {
+      flex: 0 0 auto;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .expiry {
+    color: var(--text-quaternary);
+    font-size: 12px;
+
+    &.expired {
+      color: var(--error);
+    }
+  }
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 0;
+  color: var(--text-tertiary);
+
+  l-icon {
+    display: inline-flex;
+    color: var(--success);
+  }
+}
+
+@media (max-width: 575px) {
+  .content {
+    flex-direction: column;
+    align-items: stretch;
+
+    .ring {
+      align-self: center;
+    }
+  }
+}

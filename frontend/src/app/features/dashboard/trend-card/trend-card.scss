@@ -1,0 +1,40 @@
+// The chart takes whatever height the card gets beside the summary cards.
+.card ::ng-deep > .lui-card__body {
+  height: 100%;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    list-style: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    // A line key, like the marks it names.
+    .key {
+      width: 12px;
+      height: 3px;
+      border-radius: 2px;
+    }
+  }
+
+  .chart {
+    flex: 1 1 auto;
+    transition: opacity 0.15s;
+
+    &.loading {
+      opacity: 0.5;
+    }
+  }
+}

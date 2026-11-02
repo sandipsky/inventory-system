@@ -1,0 +1,27 @@
+<l-card class="card" padding="lg">
+    <div class="head">
+        <div class="text">
+            <h2 class="title">Stock Information</h2>
+            <p class="subtitle">Active products running low or out of stock, all batches added up.</p>
+        </div>
+        <div class="controls">
+            <l-segmented-control size="sm" name="stock-tab" aria-label="Stock list" [options]="tabs" [(ngModel)]="tab" />
+        </div>
+    </div>
+
+    <div class="rows">
+        <l-table
+            class="table"
+            rowKey="product_id"
+            [columns]="columns()"
+            [data]="rows()"
+            [loading]="!loaded()"
+            [emptyText]="emptyText()"
+        >
+            <ng-template lTableCell="min_stock" let-row>{{ row.min_stock | number: '1.0-2' }}</ng-template>
+            <ng-template lTableCell="quantity" let-row>
+                <strong>{{ row.quantity | number: '1.0-2' }}</strong>
+            </ng-template>
+        </l-table>
+    </div>
+</l-card>

@@ -1,0 +1,141 @@
+// The host takes its size from the page; the svg fills it without feeding back into it.
+:host {
+  display: block;
+  position: relative;
+  min-height: 240px;
+}
+
+.plot {
+  position: absolute;
+  inset: 0;
+  display: block;
+  outline: none;
+
+  .grid {
+    line {
+      stroke: var(--separator-light);
+      stroke-width: 1;
+      shape-rendering: crispEdges;
+
+      &.base {
+        stroke: var(--separator-dark);
+      }
+    }
+
+    .tick {
+      fill: var(--text-quaternary);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .axis text {
+    fill: var(--text-quaternary);
+    font-size: 11px;
+
+    // Drawn last, with a halo over any neighbour it overlaps.
+    &.active {
+      fill: var(--text-primary);
+      font-weight: 600;
+      paint-order: stroke;
+      stroke: var(--bg-lightest);
+      stroke-width: 8px;
+    }
+  }
+
+  .crosshair {
+    stroke: var(--separator-dark);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+
+  .line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dot {
+    stroke: var(--bg-lightest);
+    stroke-width: 2;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.empty {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--bg-lightest);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 1;
+  min-width: 168px;
+  padding: 8px 10px;
+  border: 1px solid var(--separator);
+  border-radius: 8px;
+  background: var(--bg-lightest);
+  box-shadow: 0 4px 12px rgba(7, 9, 15, 0.08);
+  transform: translateX(12px);
+  pointer-events: none;
+
+  &.flip {
+    transform: translateX(calc(-100% - 12px));
+  }
+
+  .title {
+    margin-bottom: 6px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 20px;
+
+    .key {
+      flex: 0 0 auto;
+      width: 10px;
+      height: 2px;
+      border-radius: 1px;
+    }
+
+    .name {
+      flex: 1 1 auto;
+      color: var(--text-tertiary);
+    }
+
+    .value {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

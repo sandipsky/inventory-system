@@ -1,0 +1,38 @@
+<l-card class="card" padding="lg">
+    <div class="head">
+        <div class="text">
+            <h2 class="title">{{ config().title }}</h2>
+            <p class="subtitle">{{ config().subtitle }}</p>
+        </div>
+        <div class="controls">
+            <l-select
+                class="period"
+                aria-label="Period"
+                bindLabel="label"
+                bindValue="value"
+                [items]="monthOptions"
+                [(ngModel)]="months"
+            />
+        </div>
+    </div>
+
+    @if (loadError()) {
+        <p class="error">{{ loadError() }}</p>
+    } @else {
+        <div class="tiles" [class.loading]="loading()">
+            @for (figure of figures(); track figure.label) {
+                <div class="tile">
+                    <span class="badge" [class]="figure.tone"><l-icon [name]="figure.icon" [size]="20" color="inherit" /></span>
+                    <div class="text">
+                        <span class="label">{{ figure.label }}</span>
+                        @if (figure.value !== null) {
+                            <span class="value">Rs. {{ figure.value | amount }}</span>
+                        } @else {
+                            <l-skeleton width="120px" height="20px" />
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</l-card>

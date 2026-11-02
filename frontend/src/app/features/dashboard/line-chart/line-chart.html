@@ -1,0 +1,88 @@
+@if (width() > 0) {
+    <svg
+        class="plot"
+        role="img"
+        tabindex="0"
+        [attr.aria-label]="label()"
+        [attr.width]="width()"
+        [attr.height]="height()"
+        (focus)="onFocus()"
+        (blur)="active.set(null)"
+        (keydown)="onKeydown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerleave)="active.set(null)"
+    >
+        <g class="grid">
+            @for (tick of ticks(); track tick.value) {
+                <line [class.base]="!tick.value" [attr.x1]="margin.left" [attr.x2]="plotRight()" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+                <text class="tick" text-anchor="end" dominant-baseline="middle" [attr.x]="margin.left - 8" [attr.y]="tick.y">
+                    {{ tick.label }}
+                </text>
+            }
+        </g>
+
+        <g class="axis">
+            @for (item of axisLabels(); track $index) {
+                @if (item.shown && $index !== hover()?.index) {
+                    <text text-anchor="middle" [attr.x]="item.x" [attr.y]="height() - 10">{{ item.text }}</text>
+                }
+            }
+            @if (hover(); as hover) {
+                <text class="active" text-anchor="middle" [attr.x]="hover.x" [attr.y]="height() - 10">{{ hover.label }}</text>
+            }
+        </g>
+
+        @if (hover(); as hover) {
+            <line class="crosshair" [attr.x1]="hover.x" [attr.x2]="hover.x" [attr.y1]="margin.top" [attr.y2]="plotBottom()" />
+        }
+
+        @for (line of lines(); track line.name) {
+            <path class="line" [attr.d]="line.path" [attr.stroke]="line.color" />
+        }
+
+        @if (hover(); as hover) {
+            @for (point of hover.points; track point.name) {
+                <circle class="dot" r="5" [attr.cx]="hover.x" [attr.cy]="point.y" [attr.fill]="point.color" />
+            }
+        }
+    </svg>
+
+    @if (empty()) {
+        <p class="empty">{{ emptyText() }}</p>
+    }
+
+    @if (hover(); as hover) {
+        <div class="tooltip" aria-hidden="true" [class.flip]="hover.flip" [style.left.px]="hover.x" [style.top.px]="margin.top">
+            <div class="title">{{ hover.title }}</div>
+            @for (point of hover.points; track point.name) {
+                <div class="row">
+                    <span class="key" [style.background]="point.color"></span>
+                    <span class="name">{{ point.name }}</span>
+                    <span class="value">{{ point.value | amount }}</span>
+                </div>
+            }
+        </div>
+    }
+}
+
+<table class="sr-only">
+    <caption>{{ label() }}</caption>
+    <thead>
+        <tr>
+            <th scope="col">Period</th>
+            @for (series of series(); track series.name) {
+                <th scope="col">{{ series.name }}</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @for (title of titles(); track $index; let i = $index) {
+            <tr>
+                <th scope="row">{{ title }}</th>
+                @for (series of series(); track series.name) {
+                    <td>{{ series.values[i] | amount }}</td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>

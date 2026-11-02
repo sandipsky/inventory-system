@@ -1,0 +1,41 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  transition: opacity 0.15s;
+
+  &.loading {
+    opacity: 0.5;
+  }
+
+  .tile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--separator);
+    border-radius: 10px;
+
+    .text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .label {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .value {
+      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 20px;
+      white-space: nowrap;
+    }
+  }
+}

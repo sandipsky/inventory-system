@@ -1,1 +1,40 @@
-<p>dashboard works!</p>
+<div class="dashboard">
+    @if (hasMain() || hasSide()) {
+        <div class="top" [class.split]="hasMain() && hasSide()">
+            @if (hasMain()) {
+                <div class="main">
+                    @if (showBalances()) {
+                        <app-balance-cards />
+                    }
+                    @if (showTrend()) {
+                        <app-trend-card class="trend" />
+                    }
+                </div>
+            }
+            @if (hasSide()) {
+                <div class="side">
+                    @if (showSales()) {
+                        <app-totals-card kind="sales" />
+                    }
+                    @if (showPurchases()) {
+                        <app-totals-card kind="purchase" />
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (showStock()) {
+        <div class="bottom">
+            <app-near-expiry-card />
+            <app-stock-info-card />
+        </div>
+    }
+
+    @if (!hasMain() && !hasSide() && !showStock()) {
+        <p class="empty">
+            <l-icon name="dashboard" [size]="20" color="inherit" />
+            Your role has no reports to show here. Use the menu to open the pages you can work with.
+        </p>
+    }
+</div>

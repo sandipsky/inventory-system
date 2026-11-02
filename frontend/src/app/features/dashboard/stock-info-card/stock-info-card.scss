@@ -1,0 +1,5 @@
+// The list scrolls inside the card, so the card stays level with the expiry card beside it.
+.rows {
+  max-height: 280px;
+  overflow: auto;
+}

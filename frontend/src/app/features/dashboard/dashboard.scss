@@ -1,0 +1,56 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  // Balances and the chart on the left, the summary cards on the right.
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+
+    &.split {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+  }
+
+  .main,
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  // The chart and the summary cards stretch so both columns end level.
+  .main .trend,
+  .side > * {
+    flex: 1 1 auto;
+  }
+
+  .bottom {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+    gap: 16px;
+  }
+
+  .empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    border: 1px dashed var(--separator-dark);
+    border-radius: 12px;
+    color: var(--text-tertiary);
+
+    l-icon {
+      display: inline-flex;
+    }
+  }
+}
+
+@media (max-width: 1199px) {
+  .dashboard .top.split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

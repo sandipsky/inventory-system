@@ -24,6 +24,16 @@
     --cancel: var(--text-tertiary);
     --cancel-bg: var(--bg-dark);
 
+    /* ================= Charts =================
+       Categorical series colors, taken in this order (validated for colorblind
+       separation as a set). Slots 3–5 are under 3:1 on white, so a chart using
+       them labels its marks in a legend. */
+    --chart-1: #2A78D6;
+    --chart-2: #EB6834;
+    --chart-3: #1BAF7A;
+    --chart-4: #EDA100;
+    --chart-5: #E87BA4;
+
     /* ================= Text Colors ================= */
     --text-primary: #07090F;
     --text-secondary: #555755;
