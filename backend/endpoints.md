@@ -25,8 +25,9 @@ All examples were run against a fresh database. Your IDs will be different, so a
 12. [Payments](#12-payments)
 13. [Journals and opening balance](#13-journals-and-opening-balance)
 14. [Reports](#14-reports)
-15. [Users and roles](#15-users-and-roles)
-16. [A typical first run](#16-a-typical-first-run)
+15. [Dashboard](#15-dashboard)
+16. [Users and roles](#16-users-and-roles)
+17. [A typical first run](#17-a-typical-first-run)
 
 ---
 
@@ -1295,7 +1296,80 @@ Receivable and payable rows have the same shape; `party_type` tells you which (`
 
 ---
 
-## 15. Users and roles
+## 15. Dashboard
+
+The figures behind the dashboard page, summed on the server. Each endpoint needs at least one of the View permissions listed; inside an endpoint that covers two kinds of document, a figure whose View permission the user lacks comes back as **`null`**. All amounts are grand totals, rounded to paisa, and cancelled sales and sales returns count for nothing. "Today" is the server's date.
+
+| Path | What it returns | Permission |
+|---|---|---|
+| `GET /dashboard/balances` | Cash, payables and receivables now and 7 days ago | `ViewAccount` |
+| `GET /dashboard/purchase-vs-sales` | Purchases and sales per day, week or month | `ViewPurchaseEntry` or `ViewSalesEntries` |
+| `GET /dashboard/sales-summary` | Sales, sales returns and net sales in a date range | `ViewSalesEntries` or `ViewSalesReturns` |
+| `GET /dashboard/purchase-summary` | Purchases and purchase returns in a date range | `ViewPurchaseEntry` or `ViewPurchaseReturn` |
+| `GET /dashboard/near-expiry` | Batches with stock that expire soon or have expired | `ViewStockEdit` |
+| `GET /dashboard/stock-alerts` | Products at or below their minimum stock, and products with none | `ViewStockEdit` |
+
+`GET /dashboard/balances`
+
+```json
+{ "cash_balance": 237000.0, "payables": 916993.0, "receivables": 242400.0, "payables_week_ago": 669600.0, "receivables_week_ago": 242400.0 }
+```
+
+Balances of the account types in the trial balance, from every journal dated up to today (and up to 7 days ago for the `_week_ago` pair): `cash_balance` is the **Cash & Cash Equivalents** accounts' debit balance, `payables` the **Payables** accounts' credit balance (what you owe vendors) and `receivables` the **Receivables** accounts' debit balance (what customers owe you).
+
+`GET /dashboard/purchase-vs-sales?interval=monthly`
+
+```json
+{
+  "interval": "monthly",
+  "points": [
+    { "from_date": "2025-12-01", "to_date": "2025-12-31", "purchase": 85800.0, "sales": 44400.0 },
+    { "from_date": "2026-11-01", "to_date": "2026-11-30", "purchase": 223693.0, "sales": 39600.0 }
+  ]
+}
+```
+
+`interval` is `daily` (the last 30 days), `weekly` (the last 12 weeks, Sunday to Saturday) or `monthly` (the last 12 months; the default). Points run oldest first and end with the one holding today; the example shows the first and last of 12. `purchase` is `null` without `ViewPurchaseEntry`, `sales` without `ViewSalesEntries`. Any other `interval` gives **400** `"interval must be daily, weekly or monthly"`.
+
+`GET /dashboard/sales-summary?fromDate=2026-06-01&toDate=2026-11-02`
+
+```json
+{ "total_sales": 237600.0, "total_sales_return": 2400.0, "net_sales": 235200.0 }
+```
+
+`GET /dashboard/purchase-summary?fromDate=2026-06-01&toDate=2026-11-02`
+
+```json
+{ "total_purchase": 500593.0, "total_purchase_return": 1800.0 }
+```
+
+`fromDate` and `toDate` filter the document `date` and are optional, like the reports'. `net_sales` (sales minus sales returns) needs both permissions; `total_sales_return` is `null` without `ViewSalesReturns`, and so on.
+
+`GET /dashboard/near-expiry?months=6`
+
+```json
+[
+  { "product_id": 7, "product_name": "MacBook Pro 14",       "batch_id": 9, "batch_no": "NX-3", "expiry_date": "2026-10-28", "quantity": 8.0 },
+  { "product_id": 5, "product_name": "Xiaomi Redmi Note 13", "batch_id": 7, "batch_no": "NX-1", "expiry_date": "2026-11-22", "quantity": 24.0 }
+]
+```
+
+Every batch with stock whose expiry date is within `months` (default 6) of today, **already expired ones included**, soonest first. Batches without an expiry date are left out. `months` below 1 gives **400** `"months must be at least 1"`.
+
+`GET /dashboard/stock-alerts`
+
+```json
+{
+  "minimum_stock": [ { "product_id": 8, "product_name": "Dell XPS 15", "product_code": "P008", "quantity": 2.0, "min_stock": 2.0 } ],
+  "zero_quantity": [ { "product_id": 12, "product_name": "Acer Aspire 7", "product_code": "P012", "quantity": 0.0, "min_stock": 4.0 } ]
+}
+```
+
+Active products that are not service items, with every batch's stock added up. `minimum_stock` lists those in stock but at or below their `min_stock`, lowest first (a product with no `min_stock` never shows there); `zero_quantity` lists those with nothing left, including products never stocked, by name.
+
+---
+
+## 16. Users and roles
 
 ### Roles
 
@@ -1396,7 +1470,7 @@ To show the picture, request `image_url` from the server, e.g. `GET http://local
 
 ---
 
-## 16. A typical first run
+## 17. A typical first run
 
 The order to set things up on a fresh database:
 
