@@ -36,6 +36,8 @@ src/app/features/accounting/      accounting.routes.ts; account/ (chart of accou
                                   opening-balance/), payment/ (vendor and customer payments, settlement.ts + InvoiceSettlement), payment-adjustment/
 src/app/features/inventory/       inventory.routes.ts, inventory.model.ts and one service each for opening-stock/, stock-adjustment/, stock-edit/
 src/app/features/dashboard/       one component per card, DashboardService (/dashboard), figures.ts (labels, periods), line-chart/ (SVG)
+src/app/features/report/          report.routes.ts, report.model.ts (REPORTS config), reports/ (the page listing them), report-view/ (every table
+                                  report), ledger-report/, report-table.ts (search, sort, totals, CSV cells); routed under /reports
 src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
 src/app/features/settings/        configuration/ (company settings, SETTING_FIELDS picks each one's field) and document-numbering/ (view only)
 src/app/shared/components/        list-page-card, invoice-summary-card, summary-card, party-details-card, amount-totals, date-text, calculator, user-avatar, cancel-dialog
@@ -110,6 +112,14 @@ Returns name the document the goods came from: purchase returns a Ref. Purchase 
 - Each card reads one `/dashboard/…` endpoint (backend `features/dashboard`, section 15 of `endpoints.md`), which sums on the server. A card shows only when the role holds its endpoint's View operation (both stock cards need `ViewStockEdit`). An endpoint covering two document kinds answers `null` for the figure whose View operation is missing, and the card hides that tile or line too.
 - The server owns the periods: `purchase-vs-sales` picks the last 30 days, 12 weeks or 12 months and the card only labels the points; `near-expiry` takes `months` from today. The summaries take `fromDate`/`toDate`, which the card sets to the last N calendar months (`lastMonths`).
 - Charts are hand-drawn SVG (Lumen has none) in the `--chart-1…5` colors from `styles/colors.scss`. The chart's months are AD, while dates shown with `<app-date-text>` follow BS.
+
+### Reports
+
+- `/reports` (`Reports`) lists the reports the role may open, one card per `REPORT_GROUPS` entry. The sidebar link carries the same operations (`REPORT_OPERATIONS`; a spec keeps them equal).
+- Every table report shares `ReportView`, like the masters: `data.report` picks the `REPORTS` entry, and each page sits at its API path (`/reports/purchase/vendor` reads `GET /reports/purchase/vendor`, section 14 of `endpoints.md`). Columns declare a `format`, `total` to be summed in the sticky totals row, and `value` to derive a cell (the registers' discount amount, since `discount` is what was typed).
+- Reports come back whole, not paged, so search, sort, totals and the CSV export all run on the page. The sales and sales return registers keep cancelled documents, marked, and leave them out of the totals.
+- `range` picks the dates: `period` sends from–to (by default the 1st of this AD month to today); `asOf` sends only `toDate` (the trial balance sums movements inside the range, so it runs from the start); `none` sends none.
+- The ledger has its own page (`LedgerReport`). It shows an account picker, the opening balance (everything before `fromDate`), and the running balance as Dr/Cr (the API's positive is debit). `?account=&fromDate=&toDate=` opens it on an account and period; the trial balance links each account that way.
 
 ### Master data forms
 

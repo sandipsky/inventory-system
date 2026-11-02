@@ -1,0 +1,19 @@
+// Global form styles make selects full width; keep the account picker beside the dates.
+.account {
+  width: 260px;
+}
+
+.table {
+  .opening {
+    font-weight: 600;
+  }
+
+  // Dr / Cr after the balance, in a fixed width so the figures line up.
+  .side {
+    display: inline-block;
+    width: 20px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-align: left;
+  }
+}

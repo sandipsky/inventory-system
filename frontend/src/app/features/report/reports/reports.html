@@ -1,0 +1,32 @@
+<div class="reports">
+    @for (group of groups(); track group.title) {
+        <l-card class="group" padding="lg">
+            <div class="head">
+                <span class="badge"><l-icon [name]="group.icon" [size]="20" color="inherit" /></span>
+                <div class="text">
+                    <h2 class="title">{{ group.title }}</h2>
+                    <p class="subtitle">{{ group.subtitle }}</p>
+                </div>
+            </div>
+
+            <ul class="links">
+                @for (report of group.reports; track report.path) {
+                    <li>
+                        <a class="link" [routerLink]="'/reports/' + report.path">
+                            <span class="text">
+                                <span class="name">{{ report.title }}</span>
+                                <span class="description">{{ report.description }}</span>
+                            </span>
+                            <l-icon class="caret" name="caret" [size]="14" color="inherit" />
+                        </a>
+                    </li>
+                }
+            </ul>
+        </l-card>
+    } @empty {
+        <p class="empty">
+            <l-icon name="file_alt" [size]="20" color="inherit" />
+            Your role has no reports to open.
+        </p>
+    }
+</div>

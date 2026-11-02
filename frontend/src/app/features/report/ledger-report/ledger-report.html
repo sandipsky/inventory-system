@@ -1,0 +1,126 @@
+<app-list-page-card>
+    <app-list-card-title>
+        <l-select
+            class="account"
+            aria-label="Account"
+            placeholder="Select account"
+            bindLabel="name"
+            bindValue="id"
+            [searchable]="true"
+            [items]="accounts()"
+            [(ngModel)]="accountId"
+        />
+
+        <l-segmented-control
+            class="calendar"
+            size="md"
+            name="calendar"
+            aria-label="Calendar system"
+            [options]="calendarOptions"
+            [(ngModel)]="calendar"
+        />
+
+        <l-date-input
+            class="date"
+            aria-label="From date"
+            placeholder="From"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [max]="toDate()"
+            [(ngModel)]="fromDate"
+        />
+
+        <l-date-input
+            class="date"
+            aria-label="To date"
+            placeholder="To"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [min]="fromDate()"
+            [(ngModel)]="toDate"
+        />
+
+        <l-button card-actions class="action" variant="outlined" (click)="print()">
+            <l-icon name="printer" [size]="18" color="inherit" />
+            Print
+        </l-button>
+
+        <l-button card-actions class="action" variant="outlined" [disabled]="!ledger()" (click)="exportCsv()">
+            <l-icon name="download" [size]="18" color="inherit" />
+            Export
+        </l-button>
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <div class="print-head">
+            <h1 class="title">Ledger · {{ ledger()?.account_name }}</h1>
+            <p class="period">
+                <app-date-text fallback="the start" [date]="fromDate()" [calendar]="calendar()" />
+                to
+                <app-date-text fallback="today" [date]="toDate()" [calendar]="calendar()" />
+            </p>
+        </div>
+
+        <l-table
+            class="table"
+            [class.totalled]="ledger() !== null"
+            [columns]="columns"
+            [data]="tableRows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+        >
+            <ng-template lTableCell="sn" let-row let-index="index">
+                @if (row.kind === 'line') {
+                    {{ serial(index) }}
+                }
+            </ng-template>
+
+            <ng-template lTableCell="date" let-row>
+                @if (row.kind === 'line') {
+                    <app-date-text [date]="row.date" [calendar]="calendar()" />
+                }
+            </ng-template>
+
+            <ng-template lTableCell="system_entry_no" let-row>{{ row.system_entry_no | docNo }}</ng-template>
+
+            <ng-template lTableCell="narration" let-row>
+                @if (row.kind === 'line') {
+                    {{ row.narration || '-' }}
+                } @else {
+                    <strong>{{ row.narration }}</strong>
+                }
+            </ng-template>
+
+            <ng-template lTableCell="debit_amount" let-row>
+                @if (row.kind === 'total' || row.debit_amount) {
+                    {{ row.debit_amount | amount }}
+                }
+            </ng-template>
+
+            <ng-template lTableCell="credit_amount" let-row>
+                @if (row.kind === 'total' || row.credit_amount) {
+                    {{ row.credit_amount | amount }}
+                }
+            </ng-template>
+
+            <ng-template lTableCell="balance" let-row>
+                <span [class.opening]="row.kind === 'opening'">
+                    {{ abs(row.balance) | amount }}
+                    <span class="side">{{ balanceSide(row.balance) }}</span>
+                </span>
+            </ng-template>
+        </l-table>
+    </app-list-card-body>
+
+    <app-list-card-footer>
+        <p class="count">
+            @if (ledger(); as ledger) {
+                {{ ledger.rows.length }} {{ ledger.rows.length === 1 ? 'entry' : 'entries' }} · closing balance
+                {{ abs(ledger.closing_balance) | amount }}
+                {{ balanceSide(ledger.closing_balance) }}
+            } @else {
+                No account picked
+            }
+        </p>
+    </app-list-card-footer>
+</app-list-page-card>

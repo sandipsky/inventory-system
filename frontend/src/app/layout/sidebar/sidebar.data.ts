@@ -94,7 +94,23 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
           { label: 'Roles', icon: 'shield', route: '/user-roles/roles', operation: 'ViewRole' },
         ],
       },
-      { label: 'Reports', icon: 'file_alt', route: '/reports' },
+      {
+        label: 'Reports',
+        icon: 'file_alt',
+        route: '/reports',
+        // Any operation that opens one report (REPORT_OPERATIONS); the page lists only those.
+        operation: [
+          'ViewPurchaseEntry',
+          'ViewPurchaseReturn',
+          'ViewSalesEntries',
+          'ViewSalesReturns',
+          'ViewStockEdit',
+          'ViewAccount',
+          'ViewCustomerPayment',
+          'ViewVendorPayment',
+          'CreatePaymentAdjustment',
+        ],
+      },
       {
         label: 'Settings',
         icon: 'settings',

@@ -1,0 +1,109 @@
+// The report pages' own styles, on top of document-list.scss (toolbar, calendar switch, date inputs).
+
+// Global form styles make text inputs full width; keep the search box compact.
+.search {
+  width: 240px;
+}
+
+.table {
+  // Reports run long, so rows are denser than on the document lists.
+  ::ng-deep td {
+    height: 40px;
+  }
+
+  // Lumen's own `th` rule outranks its `.text-end`; line the figures' headers up with the figures.
+  // (`thead` lifts these rules above Lumen's, whose styles load after the page's.)
+  ::ng-deep thead th.text-end {
+    text-align: right;
+  }
+
+  .link {
+    color: var(--info);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: var(--accent-dark);
+    }
+  }
+
+  .doc {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  // A batch past its expiry date.
+  .expired {
+    color: var(--error);
+  }
+
+  // Figures of a cancelled document, which the totals leave out.
+  .void {
+    color: var(--text-quaternary);
+    text-decoration: line-through;
+  }
+
+  // The totals row stays in view at the bottom while the rows scroll.
+  &.totalled ::ng-deep tbody tr:last-child td {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    border-top: 1px solid var(--separator-dark);
+    background: var(--bg-semi-light);
+    font-weight: 600;
+  }
+}
+
+.count {
+  margin: 0;
+  padding: 0 12px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.print-head {
+  display: none;
+}
+
+@media print {
+  .print-head {
+    display: block;
+    margin-bottom: 12px;
+
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .period {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+  }
+
+  .table ::ng-deep {
+    // document-list.scss hides a list's last column (its row actions); a report's last column is a figure.
+    th:last-child,
+    td:last-child {
+      display: table-cell;
+    }
+
+    // No sort arrows on paper, nor the room they take.
+    thead .sort-by .th-label {
+      padding-right: 0;
+
+      &::before,
+      &::after {
+        display: none;
+      }
+    }
+  }
+
+  .table.totalled ::ng-deep tbody tr:last-child td {
+    position: static;
+  }
+}

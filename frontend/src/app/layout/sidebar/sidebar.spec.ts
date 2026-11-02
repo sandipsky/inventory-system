@@ -69,7 +69,15 @@ describe('Sidebar', () => {
   it('should hide every protected link while no user is loaded', () => {
     auth.user.set(null);
     const labels = component.sections().flatMap(section => section.items.map(item => item.label));
-    expect(labels).toEqual(['Dashboard', 'Reports']);
+    expect(labels).toEqual(['Dashboard']);
+  });
+
+  it('should show Reports to a role that can open any one report', () => {
+    auth.user.set(testUser({ operations: ['ViewCustomerPayment'] }));
+    expect(component.sections().flatMap(section => section.items).map(item => item.label)).toContain('Reports');
+
+    auth.user.set(testUser({ operations: ['ViewUnit'] }));
+    expect(component.sections().flatMap(section => section.items).map(item => item.label)).not.toContain('Reports');
   });
 
   it('should clear the search', () => {

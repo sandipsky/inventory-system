@@ -1,0 +1,159 @@
+<app-list-page-card>
+    <app-list-card-title>
+        <l-text-input
+            class="search"
+            aria-label="Search the report"
+            placeholder="Search"
+            [useValidation]="false"
+            [(ngModel)]="search"
+        />
+
+        <l-segmented-control
+            class="calendar"
+            size="md"
+            name="calendar"
+            aria-label="Calendar system"
+            [options]="calendarOptions"
+            [(ngModel)]="calendar"
+        />
+
+        @if (config.range === 'period') {
+            <l-date-input
+                class="date"
+                aria-label="From date"
+                placeholder="From"
+                format="YYYY/MM/DD"
+                [calendar]="calendar()"
+                [max]="toDate()"
+                [(ngModel)]="fromDate"
+            />
+
+            <l-date-input
+                class="date"
+                aria-label="To date"
+                placeholder="To"
+                format="YYYY/MM/DD"
+                [calendar]="calendar()"
+                [min]="fromDate()"
+                [(ngModel)]="toDate"
+            />
+        } @else if (config.range === 'asOf') {
+            <l-date-input
+                class="date"
+                aria-label="As of date"
+                placeholder="As of"
+                format="YYYY/MM/DD"
+                [calendar]="calendar()"
+                [(ngModel)]="toDate"
+            />
+        }
+
+        <l-button card-actions class="action" variant="outlined" (click)="print()">
+            <l-icon name="printer" [size]="18" color="inherit" />
+            Print
+        </l-button>
+
+        <l-button card-actions class="action" variant="outlined" [disabled]="!shownRows().length" (click)="exportCsv()">
+            <l-icon name="download" [size]="18" color="inherit" />
+            Export
+        </l-button>
+    </app-list-card-title>
+
+    <app-list-card-body>
+        <!-- Printing leaves out the toolbar, so the printout names the report and its dates here. -->
+        <div class="print-head">
+            <h1 class="title">{{ config.title }}</h1>
+            <p class="period">
+                @switch (config.range) {
+                    @case ('period') {
+                        <app-date-text fallback="the start" [date]="fromDate()" [calendar]="calendar()" />
+                        to
+                        <app-date-text fallback="today" [date]="toDate()" [calendar]="calendar()" />
+                    }
+                    @case ('asOf') {
+                        As of <app-date-text [date]="toDate() ?? today" [calendar]="calendar()" />
+                    }
+                    @default {
+                        As of <app-date-text [date]="today" [calendar]="calendar()" />
+                    }
+                }
+            </p>
+        </div>
+
+        <l-table
+            class="table"
+            [class.totalled]="tableRows().length > shownRows().length"
+            [columns]="columns"
+            [data]="tableRows()"
+            [loading]="loading()"
+            [emptyText]="emptyText()"
+            [serverSort]="true"
+            [(sort)]="sort"
+        >
+            <ng-template lTableCell="sn" let-row let-index="index">
+                @if (!isTotal(row)) {
+                    {{ serial(index) }}
+                }
+            </ng-template>
+
+            @for (column of config.columns; track column.key) {
+                <ng-template [lTableCell]="column.key" let-row>
+                    @if (isTotal(row)) {
+                        @if (column.total) {
+                            {{ column.format === 'amount' ? (row[column.key] | amount) : row[column.key] }}
+                        } @else if (column.key === totalLabelKey) {
+                            Total
+                        }
+                    } @else {
+                        @let value = cell(row, column);
+                        @switch (column.format) {
+                            @case ('amount') {
+                                <span [class.void]="isCancelled(row)">{{ value | amount }}</span>
+                            }
+                            @case ('number') {
+                                <span [class.void]="isCancelled(row)">{{ value }}</span>
+                            }
+                            @case ('date') {
+                                <app-date-text
+                                    [class.expired]="column.key === 'expiry_date' && isExpired($any(value))"
+                                    [date]="$any(value)"
+                                    [calendar]="calendar()"
+                                />
+                            }
+                            @case ('docNo') {
+                                <span class="doc">
+                                    {{ $any(value) | docNo }}
+                                    @if (isCancelled(row)) {
+                                        <l-chip size="sm" [dot]="true" variant="error">CANCELLED</l-chip>
+                                    }
+                                </span>
+                            }
+                            @case ('batch') {
+                                {{ batchName($any(value)) }}
+                            }
+                            @case ('account') {
+                                <a class="link" [routerLink]="ledgerPath" [queryParams]="ledgerParams(row)">{{ value }}</a>
+                            }
+                            @default {
+                                {{ value ?? '-' }}
+                            }
+                        }
+                    }
+                </ng-template>
+            }
+        </l-table>
+    </app-list-card-body>
+
+    <app-list-card-footer>
+        <p class="count">
+            @if (search().trim()) {
+                {{ shownRows().length }} of {{ rows().length }} rows match
+            } @else {
+                {{ rows().length }} {{ rows().length === 1 ? 'row' : 'rows' }}
+            }
+            @if (cancelledCount()) {
+                · {{ cancelledCount() }} cancelled, left out of the totals
+            }
+        </p>
+    </app-list-card-footer>
+</app-list-page-card>
