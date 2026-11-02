@@ -12,13 +12,13 @@
 
         <div class="tools">
             @if (readonly()) {
-                <l-button class="tool" variant="outlined" (click)="print()">
+                <l-button class="tool" variant="outlined" [disabled]="!!downloads.running()" (click)="download('pdf')">
                     <l-icon name="printer" [size]="18" color="inherit" />
-                    Print
+                    {{ downloads.running() === 'pdf' ? 'Printing…' : 'Print' }}
                 </l-button>
-                <l-button class="tool" variant="outlined" (click)="exportLines()">
+                <l-button class="tool" variant="outlined" [disabled]="!!downloads.running()" (click)="download('excel')">
                     <l-icon name="download" [size]="18" color="inherit" />
-                    Export
+                    {{ downloads.running() === 'excel' ? 'Exporting…' : 'Export' }}
                 </l-button>
             }
             <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">

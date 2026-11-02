@@ -1,0 +1,60 @@
+<div class="form-drawer">
+    <header class="head">
+        <div class="heading">
+            <span class="badge" aria-hidden="true">
+                <l-icon name="printer" [size]="18" color="inherit" />
+            </span>
+            <div class="text">
+                <h2 class="title">Range Print</h2>
+                <p class="subtitle">Every document of a period in one PDF</p>
+            </div>
+        </div>
+
+        <l-button class="close" variant="ghost" size="md" [rounded]="true" aria-label="Close" (click)="close()">
+            <l-icon name="cross" [size]="20" color="inherit" />
+        </l-button>
+    </header>
+
+    <div class="body">
+        <l-date-input
+            label="From Date"
+            placeholder="From"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [max]="toDate()"
+            [(ngModel)]="fromDate"
+            (calendarChange)="calendar.set($event)"
+        />
+
+        <l-date-input
+            label="To Date"
+            placeholder="To"
+            format="YYYY/MM/DD"
+            [calendar]="calendar()"
+            [min]="fromDate()"
+            [(ngModel)]="toDate"
+            (calendarChange)="calendar.set($event)"
+        />
+
+        <l-select
+            label="Document Type"
+            placeholder="Select document type"
+            bindLabel="label"
+            bindValue="value"
+            [items]="options"
+            [(ngModel)]="document"
+        />
+
+        <p class="hint">
+            Each document prints on its own page, oldest first. Cancelled sales and sales returns are marked.
+        </p>
+    </div>
+
+    <footer class="foot">
+        <l-button variant="outlined" (click)="close()">Cancel</l-button>
+        <l-button class="print" variant="primary" [disabled]="!ready() || !!downloads.running()" (click)="print()">
+            <l-icon name="printer" [size]="18" color="inherit" />
+            {{ downloads.running() ? 'Printing…' : 'Print' }}
+        </l-button>
+    </footer>
+</div>

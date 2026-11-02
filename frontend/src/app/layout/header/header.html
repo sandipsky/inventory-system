@@ -8,9 +8,18 @@
 
         <app-notification-menu />
 
-        <l-button class="action" variant="ghost" size="md" [rounded]="true" aria-label="Print">
-            <l-icon name="printer" [size]="20" color="inherit" />
-        </l-button>
+        @if (canRangePrint()) {
+            <l-button
+                class="action"
+                variant="ghost"
+                size="md"
+                [rounded]="true"
+                aria-label="Range print"
+                (click)="openRangePrint()"
+            >
+                <l-icon name="printer" [size]="20" color="inherit" />
+            </l-button>
+        }
 
         <app-profile-menu class="profile" />
     </div>

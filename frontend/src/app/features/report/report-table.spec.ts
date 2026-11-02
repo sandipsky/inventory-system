@@ -2,8 +2,6 @@ import { ReportColumn, discountAmount } from './report.model';
 import {
   balanceSide,
   columnTotals,
-  csvValue,
-  reportFileName,
   reportRange,
   searchRows,
   sortRows,
@@ -93,18 +91,6 @@ describe('columnTotals', () => {
   });
 });
 
-describe('csvValue', () => {
-  const row = SALE(1, null, 112.999);
-
-  it('writes document numbers as shown, figures to two decimals and blanks as empty', () => {
-    expect(COLUMNS.map(column => csvValue(row, column))).toEqual(['2026-10-31', 'SI-000001', null, 10, 113]);
-  });
-
-  it('names the default batch', () => {
-    expect(csvValue({ batch_no: null }, { key: 'batch_no', header: 'Batch', format: 'batch' })).toBe('Default batch');
-  });
-});
-
 describe('reportRange', () => {
   const from = new Date(2026, 10, 1);
 
@@ -122,11 +108,6 @@ describe('reportRange', () => {
 describe('report helpers', () => {
   it('starts a period on the first of the month', () => {
     expect(startOfMonth(NOV_2)).toEqual(new Date(2026, 10, 1));
-  });
-
-  it('names the export after the report and the day', () => {
-    expect(reportFileName('Purchase by Vendor', NOV_2)).toBe('purchase-by-vendor-2026-11-02');
-    expect(reportFileName('Ledger Cash & Bank', NOV_2)).toBe('ledger-cash-bank-2026-11-02');
   });
 
   it('reads a positive balance as debit and a negative one as credit', () => {

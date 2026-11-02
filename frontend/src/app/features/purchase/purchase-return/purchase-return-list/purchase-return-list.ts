@@ -25,19 +25,20 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { DateText } from '../../../../shared/components/date-text/date-text';
 import { LIST_PAGE_CARD } from '../../../../shared/components/list-page-card/list-page-card';
 import { ListParams } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { round2 } from '../../../../shared/utils/invoice';
-import { PurchaseFormData, PurchaseFormMode, PurchaseReturn } from '../../purchase.model';
 import { PurchaseReturnService } from '../../purchase-return.service';
+import { PurchaseFormData, PurchaseFormMode, PurchaseReturn } from '../../purchase.model';
 import { PurchaseReturnForm } from '../purchase-return-form/purchase-return-form';
 
 /** Table column key → backend sort field (entity names, see backend/endpoints.md). */
@@ -72,6 +73,7 @@ const SORT_FIELDS: Record<string, string> = {
     TableCellDirective,
     UpperCasePipe,
   ],
+  providers: [FileDownloads],
   selector: 'app-purchase-return-list',
   styleUrl: '../../../../shared/styles/document-list.scss',
   templateUrl: './purchase-return-list.html',
@@ -82,6 +84,7 @@ export class PurchaseReturnList {
   private readonly modal = inject(ModalService);
   private readonly notification = inject(NotificationService);
   private readonly returnService = inject(PurchaseReturnService);
+  readonly downloads = inject(FileDownloads);
 
   readonly canCreate = computed(() => this.auth.hasOperation('CreatePurchaseReturn'));
   readonly canEdit = computed(() => this.auth.hasOperation('EditPurchaseReturn'));
@@ -134,7 +137,6 @@ export class PurchaseReturnList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after a save or delete. */
   private readonly refresh = signal(0);
 
@@ -252,41 +254,11 @@ export class PurchaseReturnList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every purchase return matching the filters (not just this page) as a CSV file. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.returnService
-      .list({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          const docNo = new DocNoPipe();
-          downloadCsv(`purchase-returns-${toIsoDate(new Date())}`, [
-            ['S.N', 'Return Number', 'Posting Date', 'Vendor Name', 'Bill Number', 'Ref. Purchase',
-              'Transaction Type', 'Gross Amount', 'Discount', 'Tax Amount', 'Net Amount'],
-            ...page.content.map((row, i) => [
-              i + 1,
-              docNo.transform(row.system_entry_no),
-              row.date,
-              row.vendor_name,
-              row.bill_no,
-              docNo.transform(row.ref_purchase_no),
-              row.transaction_type,
-              row.sub_total,
-              this.discountOf(row),
-              row.tax,
-              row.grand_total,
-            ]),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every purchase return the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.returnService.exportList(format, { ...this.query(), calendar: this.calendar() }),
+    );
   }
 }

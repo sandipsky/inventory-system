@@ -20,13 +20,13 @@ import { DropdownItem } from '../../../shared/models/api.model';
 import { AmountPipe } from '../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../shared/pipes/doc-no.pipe';
 import { DropdownService } from '../../../shared/services/dropdown.service';
+import { FileDownloads } from '../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../shared/utils/api-error';
-import { downloadCsv } from '../../../shared/utils/csv';
 import { fromIsoDate, startOfToday } from '../../../shared/utils/date';
-import { round2 } from '../../../shared/utils/invoice';
+import { FileFormat } from '../../../shared/utils/file';
 import { Ledger, LedgerRow } from '../report.model';
 import { ReportService } from '../report.service';
-import { CALENDAR_OPTIONS, balanceSide, reportFileName, reportRange, startOfMonth } from '../report-table';
+import { CALENDAR_OPTIONS, balanceSide, reportRange, startOfMonth } from '../report-table';
 
 /** A table row: the opening balance, one ledger line, or the totals with the closing balance. */
 interface LedgerTableRow extends Partial<LedgerRow> {
@@ -55,12 +55,14 @@ interface LedgerTableRow extends Partial<LedgerRow> {
     Table,
     TableCellDirective,
   ],
+  providers: [FileDownloads],
   selector: 'app-ledger-report',
   styleUrls: ['../../../shared/styles/document-list.scss', '../report.scss', './ledger-report.scss'],
   templateUrl: './ledger-report.html',
 })
 export class LedgerReport {
   private readonly reportService = inject(ReportService);
+  readonly downloads = inject(FileDownloads);
   private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
 
   readonly calendarOptions = CALENDAR_OPTIONS;
@@ -116,11 +118,10 @@ export class LedgerReport {
 
   readonly emptyText = computed(() => this.loadError() || 'Pick an account to see its ledger.');
 
+  private readonly range = computed(() => reportRange('period', this.fromDate(), this.toDate()));
+
   constructor() {
-    const request = computed(() => ({
-      accountId: this.accountId(),
-      range: reportRange('period', this.fromDate(), this.toDate()),
-    }));
+    const request = computed(() => ({ accountId: this.accountId(), range: this.range() }));
 
     toObservable(request)
       .pipe(
@@ -148,28 +149,13 @@ export class LedgerReport {
     return String(index).padStart(2, '0');
   }
 
-  print() {
-    window.print();
-  }
-
-  /** The rows on screen, with the balance as an amount and its side. */
-  exportCsv() {
-    const ledger = this.ledger();
-    if (!ledger) return;
-    const amount = (value: number | undefined) => (value ? round2(value) : null);
-
-    downloadCsv(reportFileName(`Ledger ${ledger.account_name}`), [
-      ['S.N', 'Date', 'Entry No', 'Narration', 'Debit', 'Credit', 'Balance', 'Dr/Cr'],
-      ...this.tableRows().map((row, i) => [
-        row.kind === 'line' ? i : null,
-        row.date,
-        this.docNo.transform(row.system_entry_no),
-        row.narration,
-        amount(row.debit_amount),
-        amount(row.credit_amount),
-        round2(Math.abs(row.balance)),
-        balanceSide(row.balance),
-      ]),
-    ]);
+  /** Print (PDF) or Export (Excel) the ledger of the picked account over the same dates. */
+  download(format: FileFormat) {
+    const accountId = this.accountId();
+    if (accountId === null) return;
+    this.downloads.run(
+      format,
+      this.reportService.exportLedger(accountId, format, { ...this.range(), calendar: this.calendar() }),
+    );
   }
 }

@@ -23,7 +23,7 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { CancelDialog, CancelDialogData } from '../../../../shared/components/cancel-dialog/cancel-dialog';
 import { DateText } from '../../../../shared/components/date-text/date-text';
@@ -31,9 +31,10 @@ import { LIST_PAGE_CARD } from '../../../../shared/components/list-page-card/lis
 import { ListParams } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { round2 } from '../../../../shared/utils/invoice';
 import { Sale, SalesFormData, SalesFormMode } from '../../sales.model';
 import { SalesService } from '../../sales.service';
@@ -70,6 +71,7 @@ const SORT_FIELDS: Record<string, string> = {
     TableCellDirective,
     UpperCasePipe,
   ],
+  providers: [FileDownloads],
   selector: 'app-sales-entry-list',
   styleUrl: '../../../../shared/styles/document-list.scss',
   templateUrl: './sales-entry-list.html',
@@ -80,6 +82,7 @@ export class SalesEntryList {
   private readonly modal = inject(ModalService);
   private readonly notification = inject(NotificationService);
   private readonly salesService = inject(SalesService);
+  readonly downloads = inject(FileDownloads);
 
   readonly canCreate = computed(() => this.auth.hasOperation('CreateSalesEntry'));
   readonly canCancel = computed(() => this.auth.hasOperation('CancelSalesEntry'));
@@ -138,7 +141,6 @@ export class SalesEntryList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after a save or cancel. */
   private readonly refresh = signal(0);
 
@@ -251,40 +253,11 @@ export class SalesEntryList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every sale matching the filters (not just this page) as a CSV file. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.salesService
-      .list({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          const docNo = new DocNoPipe();
-          downloadCsv(`sales-${toIsoDate(new Date())}`, [
-            ['S.N', 'Invoice Number', 'Posting Date', 'Customer Name', 'Transaction Type', 'Status',
-              'Gross Amount', 'Discount', 'Tax Amount', 'Net Amount'],
-            ...page.content.map((row, i) => [
-              i + 1,
-              docNo.transform(row.system_entry_no),
-              row.date,
-              row.customer_name,
-              row.transaction_type,
-              row.cancelled ? 'Cancelled' : 'Active',
-              row.sub_total,
-              this.discountOf(row),
-              row.total_tax,
-              row.grand_total,
-            ]),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every sale the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.salesService.exportList(format, { ...this.query(), calendar: this.calendar() }),
+    );
   }
 }

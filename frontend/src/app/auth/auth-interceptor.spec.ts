@@ -1,4 +1,4 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -48,6 +48,24 @@ describe('authInterceptor', () => {
     controller
       .expectOne(`${environment.apiUrl}/purchase`)
       .flush({ message: 'The JWT token has expired' }, { status: 403, statusText: 'Forbidden' });
+    expect(expire).toHaveBeenCalled();
+  });
+
+  it('reads the JSON message of a failed file download', async () => {
+    const expire = vi.spyOn(TestBed.inject(AuthService), 'expireSession').mockImplementation(() => {});
+    const failure = new Promise<HttpErrorResponse>(resolve =>
+      http
+        .get(`${environment.apiUrl}/purchase/export/pdf`, { responseType: 'blob' })
+        .subscribe({ error: resolve }),
+    );
+    const body = new Blob([JSON.stringify({ message: 'The JWT token has expired' })], { type: 'application/json' });
+    controller
+      .expectOne(`${environment.apiUrl}/purchase/export/pdf`)
+      .flush(body, { status: 403, statusText: 'Forbidden' });
+
+    const error = await failure;
+    expect(error.status).toBe(403);
+    expect(error.error.message).toBe('The JWT token has expired');
     expect(expire).toHaveBeenCalled();
   });
 

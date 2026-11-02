@@ -25,16 +25,18 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { DateText } from '../../../../shared/components/date-text/date-text';
 import { LIST_PAGE_CARD } from '../../../../shared/components/list-page-card/list-page-card';
 import { ListParams } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
+import { PaymentForm } from '../payment-form/payment-form';
 import {
   PARTY_TYPES,
   PartyType,
@@ -44,7 +46,6 @@ import {
   VIEW_PAYMENT_OPERATIONS,
 } from '../payment.model';
 import { PaymentService } from '../payment.service';
-import { PaymentForm } from '../payment-form/payment-form';
 
 /** Table column key → backend sort field (entity names, see backend/endpoints.md). */
 const SORT_FIELDS: Record<string, string> = {
@@ -81,6 +82,7 @@ const SORT_FIELDS: Record<string, string> = {
     Table,
     TableCellDirective,
   ],
+  providers: [FileDownloads],
   selector: 'app-payment-list',
   styleUrls: ['../../../../shared/styles/document-list.scss', './payment-list.scss'],
   templateUrl: './payment-list.html',
@@ -91,6 +93,7 @@ export class PaymentList {
   private readonly modal = inject(ModalService);
   private readonly notification = inject(NotificationService);
   private readonly paymentService = inject(PaymentService);
+  readonly downloads = inject(FileDownloads);
 
   readonly canCreate = computed(() => this.auth.hasOperation('CreatePayment'));
   readonly canEdit = computed(() => this.auth.hasOperation('EditPayment'));
@@ -139,7 +142,6 @@ export class PaymentList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after a save or delete. */
   private readonly refresh = signal(0);
 
@@ -262,40 +264,11 @@ export class PaymentList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every payment matching the filters (not just this page) as a CSV file. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.paymentService
-      .list({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          const docNo = new DocNoPipe();
-          downloadCsv(`payments-${toIsoDate(new Date())}`, [
-            ['S.N', 'Payment Number', 'Date', 'Party Type', 'Party Name', 'Payment Mode', 'Amount', 'Settled',
-              'Unadjusted', 'Narration'],
-            ...page.content.map((row, i) => [
-              i + 1,
-              docNo.transform(row.system_entry_no),
-              row.date,
-              row.type,
-              this.partyName(row),
-              row.payment_mode_name,
-              row.amount,
-              row.total_adjusted_paid_amount,
-              row.unadjusted_amount,
-              row.narration,
-            ]),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every payment the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.paymentService.exportList(format, { ...this.query(), calendar: this.calendar() }),
+    );
   }
 }

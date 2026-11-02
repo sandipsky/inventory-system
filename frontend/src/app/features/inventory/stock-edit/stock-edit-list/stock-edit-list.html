@@ -16,14 +16,14 @@
             [(ngModel)]="calendar"
         />
 
-        <l-button card-actions class="action" variant="outlined" (click)="print()">
+        <l-button card-actions class="action" variant="outlined" [disabled]="!!downloads.running()" (click)="download('pdf')">
             <l-icon name="printer" [size]="18" color="inherit" />
-            Print
+            {{ downloads.running() === 'pdf' ? 'Printing…' : 'Print' }}
         </l-button>
 
-        <l-button card-actions class="action" variant="outlined" [disabled]="exporting()" (click)="exportList()">
+        <l-button card-actions class="action" variant="outlined" [disabled]="!!downloads.running()" (click)="download('excel')">
             <l-icon name="download" [size]="18" color="inherit" />
-            {{ exporting() ? 'Exporting…' : 'Export' }}
+            {{ downloads.running() === 'excel' ? 'Exporting…' : 'Export' }}
         </l-button>
     </app-list-card-title>
 

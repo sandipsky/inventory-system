@@ -28,11 +28,12 @@ import { DropdownItem } from '../../../../shared/models/api.model';
 import { BatchStock, Product } from '../../../../shared/models/product.model';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
 import { DropdownService } from '../../../../shared/services/dropdown.service';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { ProductLookup } from '../../../../shared/services/product-lookup';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
 import { batchName, batchOptions, firstBatch } from '../../../../shared/utils/batch';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { fromIsoDate, startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { withMissing } from '../../../../shared/utils/options';
 import {
   ADJUSTMENT_TYPES,
@@ -118,7 +119,7 @@ type LineForm = FormGroup<{
     TextInput,
     Textarea,
   ],
-  providers: [ProductLookup],
+  providers: [ProductLookup, FileDownloads],
   selector: 'app-stock-adjustment-form',
   styleUrls: ['../../../../shared/styles/document-form.scss', './stock-adjustment-form.scss'],
   templateUrl: './stock-adjustment-form.html',
@@ -133,6 +134,7 @@ export class StockAdjustmentForm {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly lookup = inject(ProductLookup);
   private readonly notification = inject(NotificationService);
+  readonly downloads = inject(FileDownloads);
 
   readonly mode = signal<StockAdjustmentFormMode>(this.data?.mode ?? 'add');
   readonly id = signal<number | undefined>(this.data?.id);
@@ -302,34 +304,12 @@ export class StockAdjustmentForm {
     this.drawerRef?.close(false);
   }
 
-  /** Offered in view mode only, so the printout shows values as text rather than inputs. */
-  print() {
-    window.print();
-  }
-
-  /** The lines as a CSV file. */
-  exportLines() {
-    const docNo = new DocNoPipe().transform(this.entryNo()) || 'stock-adjustment';
-    const types = new Map(ADJUSTMENT_TYPES.map(type => [type.value, type.label]));
-    downloadCsv(docNo.replace(/[^\w-]+/g, '-'), [
-      ['S.N', 'Product', 'Code', 'Unit', 'Batch', 'Expiry Date', 'Type', 'Quantity', 'Reason'],
-      ...this.lines().map((line, index) => {
-        const value = line.getRawValue();
-        const product = this.productOf(line);
-        const name = this.productOptions().find(option => option.id === value.product_id)?.name;
-        return [
-          index + 1,
-          name ?? product?.name,
-          product?.code,
-          product?.unit_name,
-          this.batchLabel(line),
-          this.batchOf(line)?.expiry_date ?? '',
-          value.adjustment_type ? types.get(value.adjustment_type) : '',
-          value.quantity,
-          value.reason,
-        ];
-      }),
-    ]);
+  /** Print (PDF) or Export (Excel) this adjustment; offered in view mode only. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.adjustmentService.exportOne(this.id()!, format, { calendar: this.calendar }),
+    );
   }
 
   private load(id: number) {

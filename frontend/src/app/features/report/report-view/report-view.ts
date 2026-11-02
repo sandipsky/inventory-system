@@ -18,21 +18,21 @@ import {
 import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { DateText } from '../../../shared/components/date-text/date-text';
 import { LIST_PAGE_CARD } from '../../../shared/components/list-page-card/list-page-card';
+import { ListParams } from '../../../shared/models/api.model';
 import { AmountPipe } from '../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../shared/pipes/doc-no.pipe';
+import { FileDownloads } from '../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../shared/utils/api-error';
 import { batchName, isExpired } from '../../../shared/utils/batch';
-import { downloadCsv } from '../../../shared/utils/csv';
 import { startOfToday } from '../../../shared/utils/date';
+import { FileFormat } from '../../../shared/utils/file';
 import { LEDGER_REPORT, REPORTS, ReportColumn, ReportConfig, ReportRow } from '../report.model';
 import { ReportService } from '../report.service';
 import {
   CALENDAR_OPTIONS,
   cellValue,
   columnTotals,
-  csvValue,
   isCancelled,
-  reportFileName,
   reportRange,
   searchRows,
   sortRows,
@@ -41,8 +41,8 @@ import {
 
 /**
  * Page shared by every table report; the route's `data.report` picks the `REPORTS` entry. The API
- * sends the whole report, so search, sorting and the totals row happen here, and Export writes
- * what is on screen.
+ * sends the whole report, so search, sorting and the totals row happen here. Print and Export
+ * send the search and sort along, so the API's file has the rows on screen.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,12 +62,14 @@ import {
     TableCellDirective,
     TextInput,
   ],
+  providers: [FileDownloads],
   selector: 'app-report-view',
   styleUrls: ['../../../shared/styles/document-list.scss', '../report.scss'],
   templateUrl: './report-view.html',
 })
 export class ReportView {
   private readonly reportService = inject(ReportService);
+  readonly downloads = inject(FileDownloads);
 
   readonly config: ReportConfig = REPORTS[inject(ActivatedRoute).snapshot.data['report']];
 
@@ -166,20 +168,12 @@ export class ReportView {
     return { account: row['account_id'], ...this.range() };
   }
 
-  print() {
-    window.print();
-  }
-
-  /** The rows on screen, in their order, with the totals row. */
-  exportCsv() {
-    const columns = this.config.columns;
-    const totals = this.totals();
-    downloadCsv(reportFileName(this.config.title), [
-      ['S.N', ...columns.map(column => column.header)],
-      ...this.shownRows().map((row, i) => [i + 1, ...columns.map(column => csvValue(row, column))]),
-      ...(this.hasTotals && this.shownRows().length
-        ? [['', ...columns.map(column => (column.total ? totals[column.key] : column.key === this.totalLabelKey ? 'Total' : null))]]
-        : []),
-    ]);
+  /** Print (PDF) or Export (Excel) the rows on screen, in their order, with the totals row. */
+  download(format: FileFormat) {
+    const sort = this.sort();
+    const params: ListParams = { ...this.range(), calendar: this.calendar() };
+    if (this.search().trim()) params['search'] = this.search().trim();
+    if (sort) params['sort'] = `${sort.key}:${sort.direction}`;
+    this.downloads.run(format, this.reportService.export(this.config.path, format, params));
   }
 }

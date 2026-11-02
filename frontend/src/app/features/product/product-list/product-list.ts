@@ -19,19 +19,19 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { Observable, catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../auth/auth.service';
 import { LIST_PAGE_CARD } from '../../../shared/components/list-page-card/list-page-card';
 import { DropdownItem, ListParams } from '../../../shared/models/api.model';
 import { ProductDetail } from '../../../shared/models/product.model';
 import { AmountPipe } from '../../../shared/pipes/amount.pipe';
 import { DropdownService } from '../../../shared/services/dropdown.service';
+import { FileDownloads } from '../../../shared/services/file-downloads';
 import { ProductService } from '../../../shared/services/product.service';
 import { apiErrorMessage } from '../../../shared/utils/api-error';
-import { downloadCsv } from '../../../shared/utils/csv';
-import { toIsoDate } from '../../../shared/utils/date';
-import { ProductFormData, ProductFormMode } from '../product.model';
+import { FileFormat } from '../../../shared/utils/file';
 import { ProductForm } from '../product-form/product-form';
+import { ProductFormData, ProductFormMode } from '../product.model';
 
 /** Table column key → backend sort field (entity names, see backend/endpoints.md). */
 const SORT_FIELDS: Record<string, string> = {
@@ -46,6 +46,7 @@ const SORT_FIELDS: Record<string, string> = {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [AmountPipe, Button, Chip, Filter, Icon, LIST_PAGE_CARD, Menu, Pagination, Table, TableCellDirective],
+  providers: [FileDownloads],
   selector: 'app-product-list',
   styleUrl: './product-list.scss',
   templateUrl: './product-list.html',
@@ -56,6 +57,7 @@ export class ProductList {
   private readonly dropdowns = inject(DropdownService);
   private readonly modal = inject(ModalService);
   private readonly notification = inject(NotificationService);
+  readonly downloads = inject(FileDownloads);
   private readonly productService = inject(ProductService);
 
   readonly canCreate = computed(() => this.auth.hasOperation('CreateProduct'));
@@ -126,7 +128,6 @@ export class ProductList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after a save or delete. */
   private readonly refresh = signal(0);
 
@@ -233,45 +234,9 @@ export class ProductList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every product matching the filters (not just this page) as a CSV file. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.productService
-      .list({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          downloadCsv(`products-${toIsoDate(new Date())}`, [
-            ['S.N', 'Product Name', 'Code', 'Barcode', 'Category', 'Unit', 'Packing', 'Tax Type', 'Type',
-              'Cost Price', 'Selling Price', 'MRP', 'Min Stock', 'Max Stock', 'Status'],
-            ...page.content.map((row, i) => [
-              i + 1,
-              row.name,
-              row.code,
-              row.barcode,
-              row.category_name,
-              row.unit_name,
-              row.packing_name,
-              row.tax_type_name,
-              this.typesOf(row).join(' / '),
-              row.cost_price,
-              row.selling_price,
-              row.mrp,
-              row.min_stock,
-              row.max_stock,
-              row.is_active ? 'Active' : 'Inactive',
-            ]),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every product the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(format, this.productService.exportList(format, this.query()));
   }
 
   /** `Service` for service items, then `Purchasable` and/or `Sellable`. */

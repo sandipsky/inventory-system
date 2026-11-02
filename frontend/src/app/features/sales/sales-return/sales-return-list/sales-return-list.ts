@@ -23,7 +23,7 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { CancelDialog, CancelDialogData } from '../../../../shared/components/cancel-dialog/cancel-dialog';
 import { DateText } from '../../../../shared/components/date-text/date-text';
@@ -31,12 +31,13 @@ import { LIST_PAGE_CARD } from '../../../../shared/components/list-page-card/lis
 import { ListParams } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { round2 } from '../../../../shared/utils/invoice';
-import { SalesFormData, SalesFormMode, SalesReturn } from '../../sales.model';
 import { SalesReturnService } from '../../sales-return.service';
+import { SalesFormData, SalesFormMode, SalesReturn } from '../../sales.model';
 import { SalesReturnForm } from '../sales-return-form/sales-return-form';
 
 /** Table column key → backend sort field (entity names, see backend/endpoints.md). */
@@ -71,6 +72,7 @@ const SORT_FIELDS: Record<string, string> = {
     TableCellDirective,
     UpperCasePipe,
   ],
+  providers: [FileDownloads],
   selector: 'app-sales-return-list',
   styleUrl: '../../../../shared/styles/document-list.scss',
   templateUrl: './sales-return-list.html',
@@ -81,6 +83,7 @@ export class SalesReturnList {
   private readonly modal = inject(ModalService);
   private readonly notification = inject(NotificationService);
   private readonly returnService = inject(SalesReturnService);
+  readonly downloads = inject(FileDownloads);
 
   readonly canCreate = computed(() => this.auth.hasOperation('CreateSalesReturn'));
   readonly canCancel = computed(() => this.auth.hasOperation('CancelSalesReturn'));
@@ -141,7 +144,6 @@ export class SalesReturnList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after a save or cancel. */
   private readonly refresh = signal(0);
 
@@ -254,41 +256,11 @@ export class SalesReturnList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every sales return matching the filters (not just this page) as a CSV file. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.returnService
-      .list({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          const docNo = new DocNoPipe();
-          downloadCsv(`sales-returns-${toIsoDate(new Date())}`, [
-            ['S.N', 'Return Number', 'Posting Date', 'Customer Name', 'Ref. Invoice', 'Transaction Type', 'Status',
-              'Gross Amount', 'Discount', 'Tax Amount', 'Net Amount'],
-            ...page.content.map((row, i) => [
-              i + 1,
-              docNo.transform(row.system_entry_no),
-              row.date,
-              row.customer_name,
-              docNo.transform(row.ref_sales_no),
-              row.transaction_type,
-              row.cancelled ? 'Cancelled' : 'Active',
-              row.sub_total,
-              this.discountOf(row),
-              row.total_tax,
-              row.grand_total,
-            ]),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every sales return the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.returnService.exportList(format, { ...this.query(), calendar: this.calendar() }),
+    );
   }
 }

@@ -71,21 +71,6 @@ export function columnTotals(rows: ReportRow[], columns: ReportColumn[]): Record
   return totals;
 }
 
-/** A cell as the CSV export writes it: figures as plain numbers, dates as `YYYY-MM-DD`, numbers as shown. */
-export function csvValue(row: ReportRow, column: ReportColumn): string | number | null {
-  const value = cellValue(row, column);
-  switch (column.format) {
-    case 'docNo':
-      return docNo.transform(value as string);
-    case 'batch':
-      return batchName(value as string);
-    case 'amount':
-      return typeof value === 'number' ? round2(value) : null;
-    default:
-      return isBlank(value) ? null : (value as string | number);
-  }
-}
-
 /** `Dr` for a debit balance (positive), `Cr` for a credit one (negative), nothing for zero. */
 export function balanceSide(balance: number): 'Dr' | 'Cr' | '' {
   if (balance > 0.005) return 'Dr';
@@ -104,15 +89,6 @@ export function reportRange(kind: ReportRangeKind, from: Date | null, to: Date |
 /** The first day of this month, where a period starts by default. */
 export function startOfMonth(today = new Date()): Date {
   return new Date(today.getFullYear(), today.getMonth(), 1);
-}
-
-/** The export's file name: `Purchase by Vendor` → `purchase-by-vendor-2026-11-02`. */
-export function reportFileName(title: string, today = new Date()): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-  return `${slug}-${toIsoDate(today)}`;
 }
 
 export const CALENDAR_OPTIONS: { label: string; value: CalendarSystem }[] = [

@@ -23,20 +23,21 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { DateText } from '../../../../shared/components/date-text/date-text';
 import { LIST_PAGE_CARD } from '../../../../shared/components/list-page-card/list-page-card';
 import { ListParams } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { round2 } from '../../../../shared/utils/invoice';
+import { JournalForm } from '../journal-form/journal-form';
 import { Journal, JournalFormData, JournalFormMode } from '../journal.model';
 import { JournalService } from '../journal.service';
-import { JournalForm } from '../journal-form/journal-form';
 
 /** Table column key → backend sort field (entity names, see backend/endpoints.md). */
 const SORT_FIELDS: Record<string, string> = {
@@ -73,6 +74,7 @@ interface JournalSides {
     Table,
     TableCellDirective,
   ],
+  providers: [FileDownloads],
   selector: 'app-journal-list',
   styleUrls: ['../../../../shared/styles/document-list.scss', './journal-list.scss'],
   templateUrl: './journal-list.html',
@@ -83,6 +85,7 @@ export class JournalList {
   private readonly journalService = inject(JournalService);
   private readonly modal = inject(ModalService);
   private readonly notification = inject(NotificationService);
+  readonly downloads = inject(FileDownloads);
 
   readonly canCreate = computed(() => this.auth.hasOperation('CreateJournalEntry'));
   readonly canEdit = computed(() => this.auth.hasOperation('EditJournalEntry'));
@@ -118,7 +121,6 @@ export class JournalList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after a save or delete. */
   private readonly refresh = signal(0);
 
@@ -243,38 +245,11 @@ export class JournalList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every journal matching the filters (not just this page) as a CSV file, one row per line. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.journalService
-      .list({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          const docNo = new DocNoPipe();
-          downloadCsv(`journal-entries-${toIsoDate(new Date())}`, [
-            ['Journal Number', 'Date', 'Remarks', 'Account', 'Narration', 'Debit', 'Credit'],
-            ...page.content.flatMap(row =>
-              (row.journalEntries ?? []).map(line => [
-                docNo.transform(row.system_entry_no),
-                row.date,
-                row.remarks,
-                line.account_master_name,
-                line.narration,
-                line.debit_amount,
-                line.credit_amount,
-              ]),
-            ),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every line of the journals the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.journalService.exportList(format, { ...this.query(), calendar: this.calendar() }),
+    );
   }
 }

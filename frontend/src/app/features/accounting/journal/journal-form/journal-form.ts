@@ -20,9 +20,10 @@ import { AuthService } from '../../../../auth/auth.service';
 import { DropdownItem } from '../../../../shared/models/api.model';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
 import { DropdownService } from '../../../../shared/services/dropdown.service';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { fromIsoDate, startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { withMissing } from '../../../../shared/utils/options';
 import {
   JournalLineForm,
@@ -72,6 +73,7 @@ const HEADINGS: Record<JournalFormMode, { title: string; subtitle: string; icon:
     Skeleton,
     Textarea,
   ],
+  providers: [FileDownloads],
   selector: 'app-journal-form',
   styleUrls: ['../../../../shared/styles/document-form.scss', './journal-form.scss'],
   templateUrl: './journal-form.html',
@@ -84,6 +86,7 @@ export class JournalForm {
   private readonly dropdowns = inject(DropdownService);
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly journalService = inject(JournalService);
+  readonly downloads = inject(FileDownloads);
   private readonly notification = inject(NotificationService);
 
   readonly mode = signal<JournalFormMode>(this.data?.mode ?? 'add');
@@ -204,28 +207,12 @@ export class JournalForm {
     this.drawerRef?.close(false);
   }
 
-  /** Offered in view mode only, so the printout shows values as text rather than inputs. */
-  print() {
-    window.print();
-  }
-
-  /** The account lines as a CSV file. */
-  exportLines() {
-    const docNo = new DocNoPipe().transform(this.entryNo()) || 'journal-entry';
-    const accounts = new Map(this.accountOptions().map(account => [account.id, account.name]));
-    downloadCsv(docNo.replace(/[^\w-]+/g, '-'), [
-      ['S.N', 'Account', 'Narration', 'Debit', 'Credit'],
-      ...this.lines().map((line, index) => {
-        const value = line.getRawValue();
-        return [
-          index + 1,
-          value.account_master_id ? accounts.get(value.account_master_id) : '',
-          value.narration,
-          value.debit_amount ?? 0,
-          value.credit_amount ?? 0,
-        ];
-      }),
-    ]);
+  /** Print (PDF) or Export (Excel) this journal; offered in view mode only. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.journalService.exportOne(this.id()!, format, { calendar: this.calendar }),
+    );
   }
 
   private load(id: number) {

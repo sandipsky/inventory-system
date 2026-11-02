@@ -23,9 +23,10 @@ import { DropdownItem } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
 import { DropdownService } from '../../../../shared/services/dropdown.service';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { fromIsoDate, startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { round2 } from '../../../../shared/utils/invoice';
 import { withMissing } from '../../../../shared/utils/options';
 import { InvoiceSettlement } from '../invoice-settlement/invoice-settlement';
@@ -89,6 +90,7 @@ function partyOf(payment: Payment): DropdownItem {
     Skeleton,
     SummaryCard,
   ],
+  providers: [FileDownloads],
   selector: 'app-payment-form',
   styleUrls: ['../../../../shared/styles/document-form.scss', './payment-form.scss'],
   templateUrl: './payment-form.html',
@@ -101,6 +103,7 @@ export class PaymentForm {
   private readonly dropdowns = inject(DropdownService);
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly notification = inject(NotificationService);
+  readonly downloads = inject(FileDownloads);
   private readonly paymentService = inject(PaymentService);
 
   readonly mode = signal<PaymentFormMode>(this.data?.mode ?? 'add');
@@ -323,25 +326,12 @@ export class PaymentForm {
     this.drawerRef?.close(false);
   }
 
-  /** Offered in view mode only, so the printout shows values as text rather than inputs. */
-  print() {
-    window.print();
-  }
-
-  /** The settled invoices as a CSV file. */
-  exportInvoices() {
-    const docNo = new DocNoPipe();
-    const name = docNo.transform(this.entryNo()) || 'payment';
-    downloadCsv(name.replace(/[^\w-]+/g, '-'), [
-      ['S.N', 'Invoice Date', 'Invoice Number', 'Invoice Amount', 'Paid'],
-      ...this.rows().map((row, index) => [
-        index + 1,
-        row.invoice_date,
-        docNo.transform(row.invoice_number),
-        row.total_invoice_amount,
-        row.paid.value ?? 0,
-      ]),
-    ]);
+  /** Print (PDF) or Export (Excel) this payment; offered in view mode only. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.paymentService.exportOne(this.id()!, format, { calendar: this.calendar }),
+    );
   }
 
   amountText(value: number | null): string {

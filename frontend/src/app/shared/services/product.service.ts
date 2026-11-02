@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, ListParams, Page } from '../models/api.model';
 import { BatchStock, ProductDetail, ProductPayload } from '../models/product.model';
+import { FileFormat } from '../utils/file';
+import { FileService } from './file.service';
 
 /**
  * Products (`/products`): the product master, and the lookups the purchase, sales and
@@ -12,6 +14,7 @@ import { BatchStock, ProductDetail, ProductPayload } from '../models/product.mod
 @Service()
 export class ProductService {
   private readonly http = inject(HttpClient);
+  private readonly files = inject(FileService);
   private readonly baseUrl = `${environment.apiUrl}/products`;
 
   /** Besides field filters, `productType` takes `purchasable`, `sellable` or `both`. */
@@ -38,5 +41,10 @@ export class ProductService {
 
   delete(id: number): Observable<ApiResponse> {
     return this.http.delete<ApiResponse>(`${this.baseUrl}/${id}`);
+  }
+
+  /** The products `params` match (filters, dates, sort; not paged) as an Excel or PDF file. */
+  exportList(format: FileFormat, params: ListParams): Observable<void> {
+    return this.files.download(`${this.baseUrl}/export/${format}`, params);
   }
 }

@@ -21,16 +21,17 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { DateText } from '../../../../shared/components/date-text/date-text';
 import { LIST_PAGE_CARD } from '../../../../shared/components/list-page-card/list-page-card';
 import { ListParams } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { PARTY_TYPES, PartyType, Payment, PaymentAdjustmentFormData } from '../../payment/payment.model';
 import { PaymentService } from '../../payment/payment.service';
 import { PaymentAdjustmentForm } from '../payment-adjustment-form/payment-adjustment-form';
@@ -68,6 +69,7 @@ const SORT_FIELDS: Record<string, string> = {
     Table,
     TableCellDirective,
   ],
+  providers: [FileDownloads],
   selector: 'app-payment-adjustment-list',
   styleUrls: ['../../../../shared/styles/document-list.scss', './payment-adjustment-list.scss'],
   templateUrl: './payment-adjustment-list.html',
@@ -76,6 +78,7 @@ export class PaymentAdjustmentList {
   private readonly auth = inject(AuthService);
   private readonly drawer = inject(DrawerService);
   private readonly notification = inject(NotificationService);
+  readonly downloads = inject(FileDownloads);
   private readonly paymentService = inject(PaymentService);
 
   readonly canAdjust = computed(() => this.auth.hasOperation('CreatePaymentAdjustment'));
@@ -120,7 +123,6 @@ export class PaymentAdjustmentList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after an adjustment. */
   private readonly refresh = signal(0);
 
@@ -212,38 +214,11 @@ export class PaymentAdjustmentList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every payment matching the filters (not just this page) as a CSV file. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.paymentService
-      .unadjusted({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          const docNo = new DocNoPipe();
-          downloadCsv(`unadjusted-payments-${toIsoDate(new Date())}`, [
-            ['S.N', 'Payment Number', 'Date', 'Party Type', 'Party Name', 'Payment Mode', 'Amount', 'Settled', 'Unadjusted'],
-            ...page.content.map((row, i) => [
-              i + 1,
-              docNo.transform(row.system_entry_no),
-              row.date,
-              row.type,
-              this.partyName(row),
-              row.payment_mode_name,
-              row.amount,
-              row.total_adjusted_paid_amount,
-              row.unadjusted_amount,
-            ]),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every payment still to adjust the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.paymentService.exportUnadjusted(format, { ...this.query(), calendar: this.calendar() }),
+    );
   }
 }

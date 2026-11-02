@@ -32,14 +32,16 @@ import { BatchStock, Product } from '../../../../shared/models/product.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
 import { DocNoPipe } from '../../../../shared/pipes/doc-no.pipe';
 import { DropdownService } from '../../../../shared/services/dropdown.service';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { ProductLookup } from '../../../../shared/services/product-lookup';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
 import { batchName, batchOptions, firstBatch } from '../../../../shared/utils/batch';
-import { downloadCsv } from '../../../../shared/utils/csv';
 import { fromIsoDate, startOfToday, toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { calculateInvoice, lineAmount } from '../../../../shared/utils/invoice';
 import { docNoOptions, withMissing } from '../../../../shared/utils/options';
 import { PartyService } from '../../../party/party.service';
+import { PurchaseReturnService } from '../../purchase-return.service';
 import {
   Purchase,
   PurchaseFormData,
@@ -48,7 +50,6 @@ import {
   PurchaseReturnLine,
   PurchaseReturnPayload,
 } from '../../purchase.model';
-import { PurchaseReturnService } from '../../purchase-return.service';
 import { PurchaseService } from '../../purchase.service';
 
 const HEADINGS: Record<PurchaseFormMode, { title: string; subtitle: string; icon: IconName }> = {
@@ -131,7 +132,7 @@ type LineForm = FormGroup<{
     Textarea,
     Toggle,
   ],
-  providers: [ProductLookup],
+  providers: [ProductLookup, FileDownloads],
   selector: 'app-purchase-return-form',
   styleUrl: '../../../../shared/styles/document-form.scss',
   templateUrl: './purchase-return-form.html',
@@ -148,6 +149,7 @@ export class PurchaseReturnForm {
   private readonly parties = inject(PartyService);
   private readonly purchaseService = inject(PurchaseService);
   private readonly returnService = inject(PurchaseReturnService);
+  readonly downloads = inject(FileDownloads);
 
   readonly mode = signal<PurchaseFormMode>(this.data?.mode ?? 'add');
   readonly id = signal<number | undefined>(this.data?.id);
@@ -421,35 +423,12 @@ export class PurchaseReturnForm {
     this.drawerRef?.close(false);
   }
 
-  /** Offered in view mode only, so the printout shows values as text rather than inputs. */
-  print() {
-    window.print();
-  }
-
-  /** The item lines as a CSV file. */
-  exportLines() {
-    const docNo = new DocNoPipe().transform(this.entryNo()) || 'purchase-return';
-    downloadCsv(docNo.replace(/[^\w-]+/g, '-'), [
-      ['S.N', 'Product', 'Code', 'Unit', 'Batch', 'Expiry Date', 'Tax', 'Quantity', 'Rate', 'MRP', 'Amount'],
-      ...this.lines().map((line, index) => {
-        const value = line.getRawValue();
-        const product = this.productOf(line);
-        const name = this.productOptions().find(option => option.id === value.product_id)?.name;
-        return [
-          index + 1,
-          name ?? product?.name,
-          product?.code,
-          product?.unit_name,
-          this.batchLabel(line),
-          this.batchOf(line)?.expiry_date ?? '',
-          this.taxLabel(line),
-          value.quantity,
-          value.cost_price,
-          value.mrp,
-          this.amountOf(line),
-        ];
-      }),
-    ]);
+  /** Print (PDF) or Export (Excel) this return; offered in view mode only. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.returnService.exportOne(this.id()!, format, { calendar: this.calendar }),
+    );
   }
 
   private load(id: number) {

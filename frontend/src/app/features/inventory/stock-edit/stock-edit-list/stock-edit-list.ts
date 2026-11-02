@@ -18,16 +18,16 @@ import {
   TableColumn,
   TableSort,
 } from '@lumen-ui/angular';
-import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../../../auth/auth.service';
 import { DateText } from '../../../../shared/components/date-text/date-text';
 import { LIST_PAGE_CARD } from '../../../../shared/components/list-page-card/list-page-card';
 import { ListParams } from '../../../../shared/models/api.model';
 import { AmountPipe } from '../../../../shared/pipes/amount.pipe';
+import { FileDownloads } from '../../../../shared/services/file-downloads';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
 import { batchName, isExpired } from '../../../../shared/utils/batch';
-import { downloadCsv } from '../../../../shared/utils/csv';
-import { toIsoDate } from '../../../../shared/utils/date';
+import { FileFormat } from '../../../../shared/utils/file';
 import { StockBatch, StockEditFormData } from '../../inventory.model';
 import { StockEditService } from '../../stock-edit.service';
 import { StockEditForm } from '../stock-edit-form/stock-edit-form';
@@ -59,6 +59,7 @@ const SORT_FIELDS: Record<string, string> = {
     Table,
     TableCellDirective,
   ],
+  providers: [FileDownloads],
   selector: 'app-stock-edit-list',
   styleUrls: ['../../../../shared/styles/document-list.scss', './stock-edit-list.scss'],
   templateUrl: './stock-edit-list.html',
@@ -67,6 +68,7 @@ export class StockEditList {
   private readonly auth = inject(AuthService);
   private readonly drawer = inject(DrawerService);
   private readonly notification = inject(NotificationService);
+  readonly downloads = inject(FileDownloads);
   private readonly stockService = inject(StockEditService);
 
   readonly canEdit = computed(() => this.auth.hasOperation('EditStockEdit'));
@@ -101,7 +103,6 @@ export class StockEditList {
   readonly total = signal(0);
   readonly loading = signal(true);
   readonly loadError = signal('');
-  readonly exporting = signal(false);
   /** Bumped to refetch the current page, e.g. after a save. */
   private readonly refresh = signal(0);
 
@@ -178,36 +179,11 @@ export class StockEditList {
     this.refresh.update(n => n + 1);
   }
 
-  print() {
-    window.print();
-  }
-
-  /** Every batch matching the filters (not just this page) as a CSV file. */
-  exportList() {
-    if (this.exporting()) return;
-    this.exporting.set(true);
-    const pageSize = Math.max(this.total(), 1);
-
-    this.stockService
-      .list({ ...this.query(), pageIndex: 0, pageSize })
-      .pipe(finalize(() => this.exporting.set(false)))
-      .subscribe({
-        next: page => {
-          downloadCsv(`stock-${toIsoDate(new Date())}`, [
-            ['S.N', 'Product', 'Batch', 'Expiry Date', 'In Stock', 'Cost Price', 'Selling Price', 'MRP'],
-            ...page.content.map((row, i) => [
-              i + 1,
-              row.product_name,
-              batchName(row.batch_no),
-              row.expiry_date,
-              row.quantity,
-              row.cost_price,
-              row.selling_price,
-              row.mrp,
-            ]),
-          ]);
-        },
-        error: (error: unknown) => this.notification.error('Export failed', apiErrorMessage(error)),
-      });
+  /** Print (PDF) or Export (Excel): every batch the filters match, not only this page. */
+  download(format: FileFormat) {
+    this.downloads.run(
+      format,
+      this.stockService.exportList(format, { ...this.query(), calendar: this.calendar() }),
+    );
   }
 }

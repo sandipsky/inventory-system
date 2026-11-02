@@ -28,7 +28,8 @@ Always work on the `main` branch. Don't create feature branches; commits go on `
 ```
 src/environments/environment.ts   apiUrl
 src/app/auth/                     AuthService, guards, interceptor, login page, auth.testing.ts (spec helpers)
-src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), header, profile/notification menus (notification-feed.ts: the live feed)
+src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), header, profile/notification menus (notification-feed.ts: the live feed),
+                                  header/range-print/ (the printer button's drawer)
 src/app/features/<module>/        <module>.routes.ts, <module>.model.ts, <module>.service.ts, list + form components
 src/app/features/masters/         one list + one form for units, categories, packings, tax types (MASTERS config)
 src/app/features/party/           one list + one form for vendors and customers (PARTIES config), routed under /purchase and /sales
@@ -41,8 +42,9 @@ src/app/features/report/          report.routes.ts, report.model.ts (REPORTS con
 src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
 src/app/features/settings/        configuration/ (company settings, SETTING_FIELDS picks each one's field) and document-numbering/ (view only)
 src/app/shared/components/        list-page-card, invoice-summary-card, summary-card, party-details-card, amount-totals, date-text, calculator, user-avatar, cancel-dialog
-src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), product-lookup, breadcrumb
-src/app/shared/pipes|utils/       amount, docNo; date, csv, api-error, invoice (totals), options (withMissing, docNoOptions), batch
+src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), product-lookup, breadcrumb,
+                                  file (downloads an API file), file-downloads (a page's Print / Export state)
+src/app/shared/pipes|utils/       amount, docNo; date, file (FileFormat, saveFile), api-error, invoice (totals), options (withMissing, docNoOptions), batch
 src/app/shared/styles/            document-form, document-list: the one stylesheet of each kind that all four document forms and lists use;
                                   summary-card: InvoiceSummaryCard and SummaryCard (the same summary without discount fields)
 ```
@@ -64,6 +66,14 @@ src/app/shared/styles/            document-form, document-list: the one styleshe
 - The server stores the totals it is sent. Compute them with `calculateInvoice` (`shared/utils/invoice.ts`). `discount` holds what the user typed (a percent or an amount, per `discount_type`); the discount amount is `sub_total − taxable_amount − non_taxable_amount`.
 - Show failures with `NotificationService` and `apiErrorMessage(error)`, which reads the backend's `message`.
 - Dropdowns come from `DropdownService` (active records). When editing a saved document, merge its own vendor/products into the options so inactive ones still show a label.
+
+### Print and Export
+
+- Print downloads a PDF and Export an Excel file, both built by the API (section 18 of `endpoints.md`). The web app never builds a file or calls `window.print()`.
+- Each resource service names its file URLs (`exportList(format, params)`, `exportOne(id, format, params)`, `printRange(params)`; reports `export(path, …)`), all through `FileService`, which saves the file under the API's `Content-Disposition` name. A page lists `FileDownloads` in its `providers` and calls `downloads.run(format, file$)`: one download at a time, `running()` labels the button (`Printing…`), a failure becomes a notification. The auth interceptor reads a failed download's Blob body as JSON, so `apiErrorMessage` works.
+- Lists send their list query (filters, dates, sort, not paged) plus `calendar`, so the file has every matching row with dates in the page's AD/BS calendar. Report pages also send their `search` and `sort`, so the file matches the screen.
+- The header's printer button opens Range Print in a 350px right drawer: from/to dates and a document type (purchase, sales, both returns, payment, the ones the role may view), printed as one PDF with a page per document.
+- Backend (`common/export`): a feature's `…ExportService` builds an `ExportTable` (each column declared with how to read its cell; `.total()` adds it up, cancelled rows are left out) or a `PrintDocument`. `ExportService` writes it with `ExcelFile` (Apache POI) or `PdfFile` (OpenPDF) under the company letterhead from the settings. BS dates come from `BsDateUtil`, which has the same month table as Lumen.
 
 ### Permissions
 
