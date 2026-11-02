@@ -1,4 +1,5 @@
 package com.sandipsky.inventory_system.features.purchase.purchase_entry.controllers;
+import com.sandipsky.inventory_system.features.purchase.purchase_entry.services.PurchaseEntryExportService;
 import com.sandipsky.inventory_system.features.purchase.purchase_entry.services.PurchaseEntryService;
 import com.sandipsky.inventory_system.features.purchase.purchase_entry.dtos.MasterPurchaseEntryDTO;
 import com.sandipsky.inventory_system.features.purchase.purchase_entry.entities.MasterPurchaseEntry;
@@ -10,6 +11,7 @@ import com.sandipsky.inventory_system.common.dto.ApiResponse;
 import java.util.Map;
 import com.sandipsky.inventory_system.features.settings.document_numbering.services.DocumentNumberingService;
 import com.sandipsky.inventory_system.common.util.ResponseUtil;
+import com.sandipsky.inventory_system.common.export.ExportService;
 
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,12 @@ public class PurchaseEntryController {
     @Autowired
     private DocumentNumberingService documentNumberingService;
 
+    @Autowired
+    private PurchaseEntryExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
     @GetMapping("/generateNumber")
     @RequiresOperation("CreatePurchaseEntry")
     public String generatePurchaseNumber() {
@@ -35,6 +43,28 @@ public class PurchaseEntryController {
     @RequiresOperation("ViewPurchaseEntry")
     public Page<MasterPurchaseEntryDTO> getPaginatedMasterPurchaseEntrysList(@RequestParam Map<String, String> params) {
         return service.getPaginatedMasterPurchaseEntrysList(params);
+    }
+
+    // The purchases the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewPurchaseEntry")
+    public ResponseEntity<byte[]> exportPurchases(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "purchases", exportService.list(params), params);
+    }
+
+    // Every purchase between fromDate and toDate as invoices in one PDF
+    @GetMapping("/print")
+    @RequiresOperation("ViewPurchaseEntry")
+    public ResponseEntity<byte[]> printPurchases(@RequestParam Map<String, String> params) {
+        return files.documents("purchase-invoices", exportService.documents(params), "No purchases in this period", params);
+    }
+
+    // One purchase: its invoice as a PDF, or its lines as an Excel file
+    @GetMapping("/{id}/export/{format}")
+    @RequiresOperation("ViewPurchaseEntry")
+    public ResponseEntity<byte[]> exportPurchase(@PathVariable int id, @PathVariable String format,
+            @RequestParam Map<String, String> params) {
+        return files.document(format, exportService.document(id), params);
     }
 
     @GetMapping("/{id}")

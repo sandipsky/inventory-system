@@ -28,7 +28,8 @@ All examples were run against a fresh database. Your IDs will be different, so a
 15. [Dashboard](#15-dashboard)
 16. [Notifications](#16-notifications): the feed and the live socket
 17. [Users and roles](#17-users-and-roles)
-18. [A typical first run](#18-a-typical-first-run)
+18. [Excel exports and PDF prints](#18-excel-exports-and-pdf-prints)
+19. [A typical first run](#19-a-typical-first-run)
 
 ---
 
@@ -1550,7 +1551,65 @@ To show the picture, request `image_url` from the server, e.g. `GET http://local
 
 ---
 
-## 18. A typical first run
+## 18. Excel exports and PDF prints
+
+Every Export (Excel) and Print (PDF) in the web app is a file the API builds. They are plain `GET`s that answer with the file itself (`Content-Disposition: attachment; filename="…"`), not JSON. `{format}` is `excel` (an `.xlsx`) or `pdf`; anything else is a **400** `"Export format must be excel or pdf"`. Errors (a missing record, a missing permission, an empty range print) come back as the usual JSON error.
+
+Each needs the same **View** permission as the list, record or report it reads.
+
+```bash
+curl -OJ "http://localhost:8080/purchase/export/excel?fromDate=2026-10-01&toDate=2026-10-31&calendar=BS" \
+  -H "Authorization: Bearer $TOKEN"
+# saves purchases-2083-07-16.xlsx
+```
+
+Every file starts with the company's letterhead from the [settings](#3-settings) (`company_name`, `company_address`, `company_contact`, `company_email`, `company_reg_type` + `company_reg`) and says who printed it when. **Dates follow `calendar`** (`AD` or `BS`), else the `calendar_type` setting. In Excel, AD dates are real date cells and BS dates are text; amounts and quantities are numbers. File names end with today's date in that calendar.
+
+### Lists
+
+`GET /<list>/export/{format}` takes **the same query parameters as the list** (filters, `fromDate` / `toDate`, `sort`) and writes **every** matching row, not one page. `pageIndex` and `pageSize` are ignored.
+
+| Path | File |
+|---|---|
+| `/purchase/export/{format}` | Purchases, with totals |
+| `/purchase-return/export/{format}` | Purchase returns, with totals |
+| `/sales/export/{format}` | Sales with a Status column; cancelled ones are struck through (PDF) and left out of the totals |
+| `/sales-return/export/{format}` | Sales returns, like sales |
+| `/payment/export/{format}` | Payments (`type=Vendor` or `Customer` keeps to one kind) |
+| `/payment-adjustment/export/{format}` | Payments with an unadjusted amount |
+| `/journal/export/{format}` | Manual journals, one row per line |
+| `/stock-adjustment/export/{format}` | Stock adjustments |
+| `/opening-stock/export/{format}`, `/stock-edit/export/{format}` | Every product batch with its current stock |
+| `/products/export/{format}` | Products |
+
+### One document
+
+`GET /<document>/{id}/export/{format}`: **PDF** prints the document (an invoice for purchases and sales, a voucher or receipt for payments) with the party's details, its lines, the totals, the remarks and signature lines; a cancelled sale or sales return is stamped **CANCELLED** with its reason. **Excel** lists the same details and lines. The file is named by the document number (`PE-000001.pdf`).
+
+Documents: `/purchase`, `/purchase-return`, `/sales`, `/sales-return`, `/payment`, `/journal` (manual journals only), `/stock-adjustment`.
+
+### Range print
+
+`GET /<document>/print?fromDate=&toDate=` prints **every document dated in the range in one PDF**, oldest first, one per page (cancelled sales and sales returns included and stamped). Documents: `/purchase`, `/purchase-return`, `/sales`, `/sales-return`, `/payment` (`type=Vendor` or `Customer` keeps to one kind). A range with nothing in it is a **404**, e.g. `"No sales in this period"`.
+
+```
+GET /sales/print?fromDate=2026-11-01&toDate=2026-11-02&calendar=BS   → sales-invoices-2083-07-16.pdf
+```
+
+### Reports
+
+`GET /reports/<report>/export/{format}` for every report of [section 14](#14-reports), e.g. `/reports/purchase/export/pdf` (the register) or `/reports/sales/customer/export/excel`. It takes the report's own dates, plus what the Reports page applies on screen:
+
+| Parameter | Meaning |
+|---|---|
+| `search` | Keep the rows with a text cell containing it (not case-sensitive) |
+| `sort` | `key:asc` or `key:desc` on one column, by the report's JSON field name (`grand_total:desc`) |
+
+The file has a totals row like the page. The registers that list cancelled documents add a Status column and leave them out of the totals. The ledger is `GET /reports/accounting/ledger/{accountId}/export/{format}`: the opening balance, each line with its running balance (Dr/Cr), and the totals with the closing balance.
+
+---
+
+## 19. A typical first run
 
 The order to set things up on a fresh database:
 

@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.purchase.purchase_return.controllers;
+import com.sandipsky.inventory_system.features.purchase.purchase_return.services.PurchaseReturnExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.purchase.purchase_return.services.PurchaseReturnService;
 import com.sandipsky.inventory_system.features.purchase.purchase_return.dtos.MasterPurchaseReturnDTO;
 import com.sandipsky.inventory_system.features.purchase.purchase_return.entities.MasterPurchaseReturn;
@@ -23,6 +25,12 @@ public class PurchaseReturnController {
     private PurchaseReturnService service;
 
     @Autowired
+    private PurchaseReturnExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
+    @Autowired
     private DocumentNumberingService documentNumberingService;
 
     @GetMapping("/generateNumber")
@@ -35,6 +43,28 @@ public class PurchaseReturnController {
     @RequiresOperation("ViewPurchaseReturn")
     public Page<MasterPurchaseReturnDTO> getPaginatedMasterPurchaseReturnsList(@RequestParam Map<String, String> params) {
         return service.getPaginatedMasterPurchaseReturnsList(params);
+    }
+
+    // The purchase returns the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewPurchaseReturn")
+    public ResponseEntity<byte[]> exportPurchaseReturns(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "purchase-returns", exportService.list(params), params);
+    }
+
+    // Every purchase return between fromDate and toDate in one PDF
+    @GetMapping("/print")
+    @RequiresOperation("ViewPurchaseReturn")
+    public ResponseEntity<byte[]> printPurchaseReturns(@RequestParam Map<String, String> params) {
+        return files.documents("purchase-returns", exportService.documents(params), "No purchase returns in this period", params);
+    }
+
+    // One purchase return as a PDF, or its lines as an Excel file
+    @GetMapping("/{id}/export/{format}")
+    @RequiresOperation("ViewPurchaseReturn")
+    public ResponseEntity<byte[]> exportPurchaseReturn(@PathVariable int id, @PathVariable String format,
+            @RequestParam Map<String, String> params) {
+        return files.document(format, exportService.document(id), params);
     }
 
     @GetMapping("/{id}")

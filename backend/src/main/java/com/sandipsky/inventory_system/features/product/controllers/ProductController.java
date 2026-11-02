@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.product.controllers;
+import com.sandipsky.inventory_system.features.product.services.ProductExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.product.dtos.ProductStockDTO;
 import com.sandipsky.inventory_system.features.product.services.ProductService;
 import com.sandipsky.inventory_system.features.product.dtos.ProductDTO;
@@ -24,10 +26,23 @@ public class ProductController {
     @Autowired
     private ProductService service;
 
+    @Autowired
+    private ProductExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
     @GetMapping()
     @RequiresOperation("ViewProduct")
     public Page<ProductDTO> getPaginatedProductsList(@RequestParam Map<String, String> params) {
         return service.getPaginatedProductsList(params);
+    }
+
+    // The products the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewProduct")
+    public ResponseEntity<byte[]> exportProducts(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "products", exportService.list(params), params);
     }
 
     @GetMapping("/{id}")

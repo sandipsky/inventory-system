@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.sales.sales_entry.controllers;
+import com.sandipsky.inventory_system.features.sales.sales_entry.services.SalesEntryExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.sales.sales_entry.services.SalesEntryService;
 import com.sandipsky.inventory_system.features.sales.sales_entry.dtos.MasterSalesEntryDTO;
 import com.sandipsky.inventory_system.features.sales.sales_entry.entities.MasterSalesEntry;
@@ -23,6 +25,12 @@ public class SalesEntryController {
     private SalesEntryService service;
 
     @Autowired
+    private SalesEntryExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
+    @Autowired
     private DocumentNumberingService documentNumberingService;
 
     @GetMapping("/generateNumber")
@@ -35,6 +43,28 @@ public class SalesEntryController {
     @RequiresOperation("ViewSalesEntries")
     public Page<MasterSalesEntryDTO> getPaginatedMasterSalesEntrysList(@RequestParam Map<String, String> params) {
         return service.getPaginatedMasterSalesEntrysList(params);
+    }
+
+    // The sales the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewSalesEntries")
+    public ResponseEntity<byte[]> exportSales(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "sales", exportService.list(params), params);
+    }
+
+    // Every sale between fromDate and toDate as invoices in one PDF, cancelled ones marked
+    @GetMapping("/print")
+    @RequiresOperation("ViewSalesEntries")
+    public ResponseEntity<byte[]> printSales(@RequestParam Map<String, String> params) {
+        return files.documents("sales-invoices", exportService.documents(params), "No sales in this period", params);
+    }
+
+    // One sale: its invoice as a PDF, or its lines as an Excel file
+    @GetMapping("/{id}/export/{format}")
+    @RequiresOperation("ViewSalesEntries")
+    public ResponseEntity<byte[]> exportSale(@PathVariable int id, @PathVariable String format,
+            @RequestParam Map<String, String> params) {
+        return files.document(format, exportService.document(id), params);
     }
 
     @GetMapping("/{id}")

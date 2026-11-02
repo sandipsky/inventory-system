@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.inventory.opening_stock.controllers;
+import com.sandipsky.inventory_system.features.inventory.opening_stock.services.OpeningStockExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.inventory.opening_stock.services.OpeningStockService;
 import com.sandipsky.inventory_system.features.inventory.opening_stock.dtos.OpeningStockDTO;
 
@@ -21,10 +23,23 @@ public class OpeningStockController {
     @Autowired
     private OpeningStockService service;
 
+    @Autowired
+    private OpeningStockExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
     @GetMapping()
     @RequiresOperation("ViewOpeningStock")
     public Page<OpeningStockDTO> getPaginatedOpeningStocksList(@RequestParam Map<String, String> params) {
         return service.getPaginatedOpeningStocksList(params);
+    }
+
+    // The batches the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewOpeningStock")
+    public ResponseEntity<byte[]> exportOpeningStock(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "opening-stock", exportService.list(params), params);
     }
 
     @PostMapping()

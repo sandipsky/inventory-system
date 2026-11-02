@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.accounting.journal.controllers;
+import com.sandipsky.inventory_system.features.accounting.journal.services.JournalEntryExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.accounting.journal.dtos.MasterJournalEntryDTO;
 import com.sandipsky.inventory_system.features.accounting.journal.entities.MasterJournalEntry;
 import com.sandipsky.inventory_system.features.accounting.journal.services.JournalEntryService;
@@ -26,6 +28,12 @@ public class JournalEntryController {
     private JournalEntryService service;
 
     @Autowired
+    private JournalEntryExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
+    @Autowired
     private DocumentNumberingService documentNumberingService;
 
     @GetMapping("/generateNumber")
@@ -38,6 +46,21 @@ public class JournalEntryController {
     @RequiresOperation("ViewJournalEntries")
     public Page<MasterJournalEntryDTO> getPaginatedJournalEntries(@RequestParam Map<String, String> params) {
         return service.getPaginatedJournalEntries(params);
+    }
+
+    // Every line of the journals the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewJournalEntries")
+    public ResponseEntity<byte[]> exportJournalEntries(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "journal-entries", exportService.list(params), params);
+    }
+
+    // One journal as a PDF voucher, or its lines as an Excel file
+    @GetMapping("/{id}/export/{format}")
+    @RequiresOperation("ViewJournalEntries")
+    public ResponseEntity<byte[]> exportJournalEntry(@PathVariable int id, @PathVariable String format,
+            @RequestParam Map<String, String> params) {
+        return files.document(format, exportService.document(id), params);
     }
 
     @GetMapping("/{id}")

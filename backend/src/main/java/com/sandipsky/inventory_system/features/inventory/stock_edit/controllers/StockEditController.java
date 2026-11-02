@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.inventory.stock_edit.controllers;
+import com.sandipsky.inventory_system.features.inventory.stock_edit.services.StockEditExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.inventory.stock_edit.services.StockEditService;
 import com.sandipsky.inventory_system.features.inventory.stock_edit.dtos.StockEditDTO;
 
@@ -21,6 +23,12 @@ public class StockEditController {
     @Autowired
     private StockEditService service;
 
+    @Autowired
+    private StockEditExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
     @GetMapping()
     @RequiresOperation("ViewStockEdit")
     public Page<StockEditDTO> getPaginatedProductStocksList(@RequestParam Map<String, String> params) {
@@ -28,6 +36,13 @@ public class StockEditController {
     }
 
     // {batchId} is the batch_id from the product stock info; 0 is the product's default batch
+    // The batches the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewStockEdit")
+    public ResponseEntity<byte[]> exportStock(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "stock", exportService.list(params), params);
+    }
+
     @GetMapping("/{productId}/{batchId}")
     @RequiresOperation("ViewStockEdit")
     public StockEditDTO getProductStock(@PathVariable int productId, @PathVariable int batchId) {

@@ -12,7 +12,8 @@ import org.springframework.data.domain.Sort;
 
 public class QueryParamUtil {
 
-    private static final Set<String> RESERVED_PARAMS = Set.of("pageIndex", "pageSize", "sort");
+    // `calendar` picks the calendar of an exported file's dates; it filters nothing
+    private static final Set<String> RESERVED_PARAMS = Set.of("pageIndex", "pageSize", "sort", "calendar");
 
     private QueryParamUtil() {
     }
@@ -22,6 +23,14 @@ public class QueryParamUtil {
                 parseIntOrDefault(params.get("pageIndex"), 0),
                 parseIntOrDefault(params.get("pageSize"), 25),
                 parseSort(params.get("sort")));
+    }
+
+    // The params with paging switched off, for a file of every matching row
+    public static Map<String, String> allRows(Map<String, String> params) {
+        Map<String, String> all = new LinkedHashMap<>(params);
+        all.put("pageIndex", "0");
+        all.put("pageSize", String.valueOf(Integer.MAX_VALUE));
+        return all;
     }
 
     public static Map<String, String> toFilterParams(Map<String, String> params) {

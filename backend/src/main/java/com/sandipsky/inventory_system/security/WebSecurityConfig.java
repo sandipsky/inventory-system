@@ -59,6 +59,8 @@ public class WebSecurityConfig {
         configuration.setAllowedMethods(List.of("*")); // Allow all HTTP methods
         configuration.setAllowedHeaders(List.of("*")); // Allow all headers
         configuration.setAllowCredentials(true); // Optional, allows cookies and auth headers
+        // Lets the web app read the file name of an Excel or PDF download
+        configuration.setExposedHeaders(List.of("Content-Disposition"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

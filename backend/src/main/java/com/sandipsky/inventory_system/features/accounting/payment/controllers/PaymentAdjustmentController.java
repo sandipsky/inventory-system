@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.accounting.payment.controllers;
+import com.sandipsky.inventory_system.common.export.ExportService;
+import com.sandipsky.inventory_system.features.accounting.payment.services.PaymentExportService;
 import com.sandipsky.inventory_system.features.accounting.payment.services.PaymentAdjustmentService;
 import com.sandipsky.inventory_system.features.accounting.payment.dtos.MasterPaymentDTO;
 import com.sandipsky.inventory_system.features.accounting.payment.dtos.PaymentDetailDTO;
@@ -24,10 +26,24 @@ public class PaymentAdjustmentController {
     @Autowired
     private PaymentAdjustmentService service;
 
+    @Autowired
+    private PaymentExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
     @GetMapping()
     @RequiresOperation("ViewPaymentAdjustment")
     public Page<MasterPaymentDTO> getPaymentsWithUnadjustedAmount(@RequestParam Map<String, String> params) {
         return service.getPaymentsWithUnadjustedAmount(params);
+    }
+
+    // The payments still to adjust that the filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewPaymentAdjustment")
+    public ResponseEntity<byte[]> exportUnadjustedPayments(@PathVariable String format,
+            @RequestParam Map<String, String> params) {
+        return files.table(format, "unadjusted-payments", exportService.unadjusted(params), params);
     }
 
     @PostMapping("/{paymentId}")

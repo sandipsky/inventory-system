@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.sales.sales_return.controllers;
+import com.sandipsky.inventory_system.features.sales.sales_return.services.SalesReturnExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.sales.sales_return.services.SalesReturnService;
 import com.sandipsky.inventory_system.features.sales.sales_return.dtos.MasterSalesReturnDTO;
 import com.sandipsky.inventory_system.features.sales.sales_return.entities.MasterSalesReturn;
@@ -23,6 +25,12 @@ public class SalesReturnController {
     private SalesReturnService service;
 
     @Autowired
+    private SalesReturnExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
+    @Autowired
     private DocumentNumberingService documentNumberingService;
 
     @GetMapping("/generateNumber")
@@ -35,6 +43,28 @@ public class SalesReturnController {
     @RequiresOperation("ViewSalesReturns")
     public Page<MasterSalesReturnDTO> getPaginatedMasterSalesReturnsList(@RequestParam Map<String, String> params) {
         return service.getPaginatedMasterSalesReturnsList(params);
+    }
+
+    // The sales returns the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewSalesReturns")
+    public ResponseEntity<byte[]> exportSalesReturns(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "sales-returns", exportService.list(params), params);
+    }
+
+    // Every sales return between fromDate and toDate in one PDF, cancelled ones marked
+    @GetMapping("/print")
+    @RequiresOperation("ViewSalesReturns")
+    public ResponseEntity<byte[]> printSalesReturns(@RequestParam Map<String, String> params) {
+        return files.documents("sales-returns", exportService.documents(params), "No sales returns in this period", params);
+    }
+
+    // One sales return as a PDF, or its lines as an Excel file
+    @GetMapping("/{id}/export/{format}")
+    @RequiresOperation("ViewSalesReturns")
+    public ResponseEntity<byte[]> exportSalesReturn(@PathVariable int id, @PathVariable String format,
+            @RequestParam Map<String, String> params) {
+        return files.document(format, exportService.document(id), params);
     }
 
     @GetMapping("/{id}")

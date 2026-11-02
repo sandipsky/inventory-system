@@ -1,4 +1,6 @@
 package com.sandipsky.inventory_system.features.inventory.stock_adjustment.controllers;
+import com.sandipsky.inventory_system.features.inventory.stock_adjustment.services.StockAdjustmentExportService;
+import com.sandipsky.inventory_system.common.export.ExportService;
 import com.sandipsky.inventory_system.features.inventory.stock_adjustment.services.StockAdjustmentService;
 import com.sandipsky.inventory_system.features.inventory.stock_adjustment.dtos.MasterStockAdjustmentDTO;
 import com.sandipsky.inventory_system.features.inventory.stock_adjustment.entities.MasterStockAdjustment;
@@ -23,6 +25,12 @@ public class StockAdjustmentController {
     private StockAdjustmentService service;
 
     @Autowired
+    private StockAdjustmentExportService exportService;
+
+    @Autowired
+    private ExportService files;
+
+    @Autowired
     private DocumentNumberingService documentNumberingService;
 
     @GetMapping("/generateNumber")
@@ -35,6 +43,21 @@ public class StockAdjustmentController {
     @RequiresOperation("ViewStockAdjustment")
     public Page<MasterStockAdjustmentDTO> getPaginatedMasterStockAdjustmentsList(@RequestParam Map<String, String> params) {
         return service.getPaginatedMasterStockAdjustmentsList(params);
+    }
+
+    // The adjustments the list's filters match, as an Excel or PDF file
+    @GetMapping("/export/{format}")
+    @RequiresOperation("ViewStockAdjustment")
+    public ResponseEntity<byte[]> exportStockAdjustments(@PathVariable String format, @RequestParam Map<String, String> params) {
+        return files.table(format, "stock-adjustments", exportService.list(params), params);
+    }
+
+    // One adjustment with its lines, as a PDF or an Excel file
+    @GetMapping("/{id}/export/{format}")
+    @RequiresOperation("ViewStockAdjustment")
+    public ResponseEntity<byte[]> exportStockAdjustment(@PathVariable int id, @PathVariable String format,
+            @RequestParam Map<String, String> params) {
+        return files.document(format, exportService.document(id), params);
     }
 
     @GetMapping("/{id}")
