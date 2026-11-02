@@ -27,7 +27,7 @@ Always work on the `main` branch. Don't create feature branches; commits go on `
 
 ```
 src/environments/environment.ts   apiUrl
-src/app/auth/                     AuthService, guards, interceptor, login page, auth.testing.ts (spec helpers)
+src/app/auth/                     AuthService, guards, interceptor, login page, change-password page, auth.testing.ts (spec helpers)
 src/app/layout/                   shell: sidebar (menu in sidebar.data.ts), header, profile/notification menus (notification-feed.ts: the live feed),
                                   header/range-print/ (the printer button's drawer)
 src/app/features/<module>/        <module>.routes.ts, <module>.model.ts, <module>.service.ts, list + form components
@@ -44,7 +44,8 @@ src/app/features/settings/        configuration/ (company settings, SETTING_FIEL
 src/app/shared/components/        list-page-card, invoice-summary-card, summary-card, party-details-card, amount-totals, date-text, calculator, user-avatar, cancel-dialog
 src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), product-lookup, breadcrumb,
                                   file (downloads an API file), file-downloads (a page's Print / Export state)
-src/app/shared/pipes|utils/       amount, docNo; date, file (FileFormat, saveFile), api-error, invoice (totals), options (withMissing, docNoOptions), batch
+src/app/shared/pipes|utils/       amount, docNo; date, file (FileFormat, saveFile), api-error, invoice (totals), options (withMissing, docNoOptions), batch,
+                                  password (STRONG_PASSWORD, the checklist's rules, which the API checks too)
 src/app/shared/styles/            document-form, document-list: the one stylesheet of each kind that all four document forms and lists use;
                                   summary-card: InvoiceSummaryCard and SummaryCard (the same summary without discount fields)
 ```
@@ -80,6 +81,7 @@ src/app/shared/styles/            document-form, document-list: the one styleshe
 - `GET /getUserRoleOperations` gives the user's operations (`ViewPurchaseEntry`, `CreatePurchaseEntry`, …); `AuthService.hasOperation()` checks them.
 - Routes declare `data: { operation: 'View…' }` with `canActivate: [permissionGuard]`; sidebar links carry the same operation and are hidden when it isn't granted. Either can be a list, any one of which grants access (Payments: `ViewVendorPayment` or `ViewCustomerPayment`); `hasOperation` takes a list too.
 - Gate buttons and row actions on the matching `Create…` / `Edit…` / `Delete…` operation.
+- Change Password (`/change-password`, from the profile menu) needs only a login: `PUT /change-password` checks the current password, and a wrong one counts towards the lock like a failed login. The session stays signed in.
 - After saving the signed-in user's own role or account, call `AuthService.refreshUser()` so menus and the header follow. Their token names their username, so renaming yourself means logging in again.
 - The API deletes a role its users still have (and clears its operations first), after which `GET /users` fails for everyone. Check `UserService.countWithRole` before deleting one.
 - Profile pictures (`image_url`) need the auth header; show them with `<app-user-avatar>`, never an `<img src>`.

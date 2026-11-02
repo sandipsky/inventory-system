@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { NotificationService } from '@lumen-ui/angular';
 import { Observable, finalize, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { AuthUser, LoginRequest, LoginResponse, UserRoleOperations } from './auth.model';
+import { ApiResponse } from '../shared/models/api.model';
+import { AuthUser, ChangePasswordRequest, LoginRequest, LoginResponse, UserRoleOperations } from './auth.model';
 
 const TOKEN_KEY = 'auth_token';
 
@@ -50,6 +51,14 @@ export class AuthService {
       tap(({ token }) => this.setToken(token)),
       switchMap(() => this.loadUser()),
     );
+  }
+
+  /**
+   * Changes the signed-in user's own password. The API checks the current one (a wrong one counts
+   * towards the lock, like a failed login); the session stays signed in.
+   */
+  changePassword(request: ChangePasswordRequest): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${environment.apiUrl}/change-password`, request);
   }
 
   /** Fetches the user and their operations once per session; later calls reuse it. */

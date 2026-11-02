@@ -35,3 +35,9 @@ export interface AuthUser {
   masterModules: string[];
   operations: string[];
 }
+
+/** Body of `PUT /change-password`: the signed-in user's own password. */
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}

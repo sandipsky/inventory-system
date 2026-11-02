@@ -63,6 +63,12 @@ export const routes: Routes = [
                 data: { breadcrumb: 'Settings' },
                 loadChildren: () => import('./features/settings/settings.routes').then(m => m.SETTINGS_ROUTES),
             },
+            {
+                // The signed-in user's own password: any login may open it, so no operation
+                path: 'change-password',
+                data: { breadcrumb: 'Change Password' },
+                loadComponent: () => import('./auth/change-password/change-password').then(m => m.ChangePassword),
+            },
         ],
     },
     {

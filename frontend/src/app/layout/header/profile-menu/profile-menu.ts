@@ -23,7 +23,6 @@ export class ProfileMenu {
   readonly role = computed(() => this.user()?.role || 'No role assigned');
 
   changePassword() {
-    // TODO: point at the change-password page once it exists.
     this.router.navigate(['/change-password']);
   }
 

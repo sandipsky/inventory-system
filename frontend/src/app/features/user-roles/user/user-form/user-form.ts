@@ -27,6 +27,7 @@ import { UserAvatar } from '../../../../shared/components/user-avatar/user-avata
 import { DropdownService } from '../../../../shared/services/dropdown.service';
 import { apiErrorMessage } from '../../../../shared/utils/api-error';
 import { withMissing } from '../../../../shared/utils/options';
+import { STRONG_PASSWORD } from '../../../../shared/utils/password';
 import { GENDERS, User, UserFormData, UserFormMode, UserPayload } from '../user.model';
 import { UserService } from '../user.service';
 
@@ -35,9 +36,6 @@ const HEADINGS: Record<UserFormMode, { title: string; subtitle: string; icon: Ic
   edit: { title: 'Edit User', subtitle: 'Update the details of this user', icon: 'edit' },
   view: { title: 'User', subtitle: 'Details of this user', icon: 'eye' },
 };
-
-/** The rules Lumen's password checklist shows: 8+ characters, upper and lower case, a number and a symbol. */
-const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 /** The API checks the file extension; it keeps uploads up to 10 MB. */
 const PICTURE_TYPES = '.jpg,.jpeg,.png,.gif,.webp';

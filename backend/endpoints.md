@@ -184,6 +184,7 @@ The `admin` user has every permission. A few endpoints only need a valid login, 
 |---|---|---|
 | `POST` | `/login` | Log in, get a token (no token needed) |
 | `GET` | `/getUserRoleOperations` | Who am I, and what am I allowed to do |
+| `PUT` | `/change-password` | Change your own password |
 
 ### Log in
 
@@ -218,6 +219,23 @@ Useful for a frontend to decide which menus and buttons to show.
   "operations": ["CreateCategory", "ViewCategory", "EditCategory", "DeleteCategory", "..."]
 }
 ```
+
+### Change your own password
+
+`PUT /change-password` needs only a login (no operation): it changes the password of the user the token belongs to.
+
+```json
+{ "current_password": "Admin@123", "new_password": "Admin@456" }
+```
+
+Response: the usual success object, `"message": "Password changed successfully"`, with your user ID as `post_data_id`. The token you sent stays valid until it expires, so you stay logged in.
+
+It fails with **400** and a `message` when:
+
+- either password is blank: `"Current password and new password are required"`
+- the current password is wrong: `"Current password is incorrect"`. This counts as a wrong password, so after **5** in a row (logins included) the account is locked for an hour, and then you get **403** `"Account is locked. Try again later."`
+- the new password is weak: `"New password must be at least 8 characters with upper and lower case letters, a number and a symbol"`
+- it is the same as the current one: `"New password must be different from the current password"`
 
 ---
 
