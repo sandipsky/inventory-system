@@ -69,6 +69,12 @@ export const routes: Routes = [
                 data: { breadcrumb: 'Change Password' },
                 loadComponent: () => import('./auth/change-password/change-password').then(m => m.ChangePassword),
             },
+            {
+                // Any login may open it; the page shows only the topics the role may see
+                path: 'user-manual',
+                data: { breadcrumb: 'User Manual' },
+                loadComponent: () => import('./features/user-manual/user-manual').then(m => m.UserManual),
+            },
         ],
     },
     {

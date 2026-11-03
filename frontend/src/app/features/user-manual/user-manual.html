@@ -1,0 +1,67 @@
+<div class="manual">
+    <l-card class="contents" padding="md">
+        <div class="head">
+            <span class="badge" aria-hidden="true"><l-icon name="help" [size]="18" color="inherit" /></span>
+            <div class="text">
+                <h2 class="title">User Manual</h2>
+                <p class="subtitle">How to use the pages you can open</p>
+            </div>
+        </div>
+
+        <nav class="links" aria-label="Contents">
+            @for (section of sections(); track section.id) {
+                <div
+                    class="link"
+                    role="button"
+                    tabindex="0"
+                    (click)="scrollTo(section.id)"
+                    (keydown.enter)="scrollTo(section.id)"
+                >
+                    <l-icon [name]="section.icon" [size]="18" color="inherit" />
+                    <span class="name">{{ section.title }}</span>
+                </div>
+            }
+        </nav>
+    </l-card>
+
+    <div class="sections">
+        @for (section of sections(); track section.id) {
+            <l-card class="section" padding="lg" [id]="section.id">
+                <div class="head">
+                    <span class="badge"><l-icon [name]="section.icon" [size]="20" color="inherit" /></span>
+                    <div class="text">
+                        <h2 class="title">{{ section.title }}</h2>
+                        <p class="subtitle">{{ section.summary }}</p>
+                    </div>
+                </div>
+
+                <l-accordion variant="contained" [multiple]="true">
+                    @for (topic of section.topics; track topic.title) {
+                        <l-accordion-item [title]="topic.title">
+                            @for (paragraph of topic.text; track $index) {
+                                <p class="paragraph" [innerHTML]="paragraph"></p>
+                            }
+                            @if (topic.steps?.length) {
+                                <ol class="steps">
+                                    @for (step of topic.steps; track $index) {
+                                        <li [innerHTML]="step"></li>
+                                    }
+                                </ol>
+                            }
+                            @if (topic.notes?.length) {
+                                <div class="notes">
+                                    <l-icon name="help" [size]="16" color="inherit" />
+                                    <ul>
+                                        @for (note of topic.notes; track $index) {
+                                            <li [innerHTML]="note"></li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </l-accordion-item>
+                    }
+                </l-accordion>
+            </l-card>
+        }
+    </div>
+</div>

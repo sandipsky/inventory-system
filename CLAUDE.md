@@ -41,6 +41,8 @@ src/app/features/report/          report.routes.ts, report.model.ts (REPORTS con
                                   report), ledger-report/, report-table.ts (search, sort, totals, CSV cells); routed under /reports
 src/app/features/user-roles/      user/ and role/ (role/permissions.ts lays operations out as the permission matrix), routed under /user-roles
 src/app/features/settings/        configuration/ (company settings, SETTING_FIELDS picks each one's field) and document-numbering/ (view only)
+src/app/features/user-manual/     the sidebar footer's User Manual page: MANUAL_SECTIONS (user-manual.data.ts) of task topics, each shown when the role holds
+                                  its operation; text is plain sentences with <b> around on-screen labels
 src/app/shared/components/        list-page-card, invoice-summary-card, summary-card, party-details-card, amount-totals, date-text, calculator, user-avatar, cancel-dialog
 src/app/shared/services/          dropdown, product (the /products service, also used by the product pages), product-lookup, breadcrumb,
                                   file (downloads an API file), file-downloads (a page's Print / Export state)

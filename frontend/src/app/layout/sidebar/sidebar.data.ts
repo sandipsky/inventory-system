@@ -126,5 +126,5 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
 ];
 
 export const SIDEBAR_FOOTER_ITEMS: SidebarItem[] = [
-  { label: 'User Manual', icon: 'user_add', route: '/user-manual' },
+  { label: 'User Manual', icon: 'help', route: '/user-manual' },
 ];
