@@ -1,0 +1,13 @@
+{
+  "name": "inventory-system-docs-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Converts the Markdown documents under docs/ to Word (.docx) files, rendering Mermaid diagrams with headless Chrome.",
+  "scripts": {
+    "build": "node build-docx.js"
+  },
+  "dependencies": {
+    "docx": "9.5.1",
+    "marked": "15.0.12"
+  }
+}
